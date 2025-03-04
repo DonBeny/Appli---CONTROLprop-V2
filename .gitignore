@@ -1,0 +1,16 @@
+# Android Studio / Java
+*.iml
+.gradle/
+.idea/
+.vscode/
+app/build/
+out/
+*.log
+*.tmp
+.DS_Store
+*.apk
+*.aab
+
+# Clés et secrets (IMPORTANT)
+secrets.properties
+local.properties
