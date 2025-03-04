@@ -15,13 +15,7 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity
-            android:name=".controllers.activities.SelectListActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.LoginActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.SplashScreenActivity"
+            android:name=".ui.splash.SplashScreenActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -30,54 +24,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity
-            android:name=".controllers.activities.SynchronizeActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.MakeSelectActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.CommentActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.TypeCtrlActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.SelectSearchActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.SelectActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.AddPlanActionActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.SignatureActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.FinishCtrlActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.SendMailActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.AddCommentActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.CtrlZoneActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.MakeCtrlActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.StartCtrlActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.GetMailActivity"
-            android:exported="false" />
-        <activity
-            android:name=".controllers.activities.MainActivity"
-            android:exported="false" />
     </application>
 
 </manifest>
