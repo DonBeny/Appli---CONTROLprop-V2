@@ -8,37 +8,30 @@ import org.orgaprop.controlprop.utils.types.Result
 
 class StorageRepository(private val storageDao: StorageDao) {
 
-    // Récupérer tous les enregistrements de stockage (Flow)
     fun getAllStorage(): Flow<List<Storage>> {
         return storageDao.getAllStorage()
     }
 
-    // Récupérer un enregistrement de stockage par son ID (Flow)
     fun getStorage(storageId: Int): Flow<Storage> {
         return storageDao.getStorage(storageId)
     }
 
-    // Récupérer un enregistrement de stockage par son resid (Flow)
     fun getStorageRsd(storageRsd: Int): Flow<Storage> {
         return storageDao.getStorageRsd(storageRsd)
     }
 
-    // Récupérer tous les enregistrements de stockage (Cursor)
-    suspend fun getAllStorageWithCursor(): Cursor {
+    fun getAllStorageWithCursor(): Cursor {
         return storageDao.getAllStorageWithCursor()
     }
 
-    // Récupérer un enregistrement de stockage par son ID (Cursor)
-    suspend fun getStorageWithCursor(storageId: Int): Cursor {
+    fun getStorageWithCursor(storageId: Int): Cursor {
         return storageDao.getStorageWithCursor(storageId)
     }
 
-    // Récupérer un enregistrement de stockage par son resid (Cursor)
-    suspend fun getStorageRsdWithCursor(storageRsd: Int): Cursor {
+    fun getStorageRsdWithCursor(storageRsd: Int): Cursor {
         return storageDao.getStorageRsdWithCursor(storageRsd)
     }
 
-    // Insérer un enregistrement de stockage
     suspend fun insertStorage(storage: Storage): Result<Long> {
         return if (storage.isValid()) {
             try {
@@ -51,7 +44,6 @@ class StorageRepository(private val storageDao: StorageDao) {
         }
     }
 
-    // Mettre à jour un enregistrement de stockage
     suspend fun updateStorage(storage: Storage): Result<Int> {
         return if (storage.isValid()) {
             try {
@@ -64,7 +56,6 @@ class StorageRepository(private val storageDao: StorageDao) {
         }
     }
 
-    // Supprimer un enregistrement de stockage par son ID
     suspend fun deleteStorageById(storageId: Long): Result<Int> {
         return try {
             Result.Success(storageDao.deleteStorageById(storageId))
@@ -73,7 +64,6 @@ class StorageRepository(private val storageDao: StorageDao) {
         }
     }
 
-    // Supprimer un enregistrement de stockage par son resid
     suspend fun deleteStorageByRsd(storageRsd: Long): Result<Int> {
         return try {
             Result.Success(storageDao.deleteStorageByRsd(storageRsd))
@@ -82,7 +72,6 @@ class StorageRepository(private val storageDao: StorageDao) {
         }
     }
 
-    // Supprimer tous les enregistrements de stockage
     suspend fun deleteAllStorage(): Result<Int> {
         return try {
             Result.Success(storageDao.deleteAllStorage())

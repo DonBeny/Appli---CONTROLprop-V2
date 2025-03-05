@@ -5,15 +5,15 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
-import org.orgaprop.controlprop.utils.prefs.configPrefDatabase
+import org.orgaprop.controlprop.utils.prefs.ConfigPrefDatabase
 
-@Entity(tableName = configPrefDatabase.CONTACT_TABLE_NAME)
+@Entity(tableName = ConfigPrefDatabase.CONTACT_TABLE_NAME)
 data class Contact(
     @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = configPrefDatabase.CONTACT_COL_ID)
+    @ColumnInfo(name = ConfigPrefDatabase.CONTACT_COL_ID)
     var id: Int = 0,
 
-    @ColumnInfo(name = configPrefDatabase.CONTACT_COL_ADR)
+    @ColumnInfo(name = ConfigPrefDatabase.CONTACT_COL_ADR)
     var address: String
 ) {
     @Ignore

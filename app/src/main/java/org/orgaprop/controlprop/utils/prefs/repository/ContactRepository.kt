@@ -8,27 +8,22 @@ import org.orgaprop.controlprop.utils.types.Result
 
 class ContactRepository(private val contactDao: ContactDao) {
 
-    // Récupérer tous les contacts (Flow)
     fun getAllContacts(): Flow<List<Contact>> {
         return contactDao.getAllContacts()
     }
 
-    // Récupérer un contact par son adresse (Flow)
     fun getContact(address: String): Flow<Contact> {
         return contactDao.getContact(address)
     }
 
-    // Récupérer tous les contacts (Cursor)
-    suspend fun getAllContactsWithCursor(): Cursor {
+    fun getAllContactsWithCursor(): Cursor {
         return contactDao.getAllContactsWithCursor()
     }
 
-    // Récupérer un contact par son adresse (Cursor)
-    suspend fun getContactWithCursor(address: String): Cursor {
+    fun getContactWithCursor(address: String): Cursor {
         return contactDao.getContactWithCursor(address)
     }
 
-    // Insérer un contact
     suspend fun insertContact(contact: Contact): Result<Long> {
         return if (contact.isValid()) {
             try {
@@ -41,7 +36,6 @@ class ContactRepository(private val contactDao: ContactDao) {
         }
     }
 
-    // Mettre à jour un contact
     suspend fun updateContact(contact: Contact): Result<Int> {
         return if (contact.isValid()) {
             try {
@@ -54,7 +48,6 @@ class ContactRepository(private val contactDao: ContactDao) {
         }
     }
 
-    // Supprimer un contact par son ID
     suspend fun deleteContact(contactId: Long): Result<Int> {
         return try {
             Result.Success(contactDao.deleteContact(contactId))

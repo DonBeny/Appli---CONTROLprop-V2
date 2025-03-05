@@ -5,9 +5,11 @@ import android.content.Context
 import android.database.Cursor
 import android.os.Handler
 import android.os.Looper
-import org.orgaprop.controlprop.databases.PrefDatabase
-import org.orgaprop.controlprop.models.Pref
+import org.orgaprop.controlprop.utils.prefs.models.Pref
 import java.util.concurrent.Executors
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * Gestionnaire des préférences de l'application.
@@ -21,12 +23,12 @@ class Prefs(private val context: Context) {
     // ************ SETTERS ************
 
     fun setMbr(idMbr: String) {
-        Executors.newSingleThreadExecutor().execute {
+        CoroutineScope(Dispatchers.IO).launch {
             Looper.prepare()
 
             val values = ContentValues().apply {
-                put("id", PrefDatabase.PREF_ROW_ID_MBR_NUM.toLong())
-                put("param", PrefDatabase.PREF_ROW_ID_MBR)
+                put("id", ConfigPrefDatabase.PREF_ROW_ID_MBR_NUM.toLong())
+                put("param", ConfigPrefDatabase.PREF_ROW_ID_MBR)
                 put("value", idMbr)
             }
 
@@ -36,12 +38,12 @@ class Prefs(private val context: Context) {
     }
 
     fun setAdrMac(adrMac: String) {
-        Executors.newSingleThreadExecutor().execute {
+        CoroutineScope(Dispatchers.IO).launch {
             Looper.prepare()
 
             val values = ContentValues().apply {
-                put("id", PrefDatabase.PREF_ROW_ADR_MAC_NUM.toLong())
-                put("param", PrefDatabase.PREF_ROW_ADR_MAC)
+                put("id", ConfigPrefDatabase.PREF_ROW_ADR_MAC_NUM.toLong())
+                put("param", ConfigPrefDatabase.PREF_ROW_ADR_MAC)
                 put("value", adrMac)
             }
 
@@ -51,12 +53,12 @@ class Prefs(private val context: Context) {
     }
 
     fun setAgency(agency: String) {
-        Executors.newSingleThreadExecutor().execute {
+        CoroutineScope(Dispatchers.IO).launch {
             Looper.prepare()
 
             val values = ContentValues().apply {
-                put("id", PrefDatabase.PREF_ROW_AGENCY_NUM.toLong())
-                put("param", PrefDatabase.PREF_ROW_AGENCY)
+                put("id", ConfigPrefDatabase.PREF_ROW_AGENCY_NUM.toLong())
+                put("param", ConfigPrefDatabase.PREF_ROW_AGENCY)
                 put("value", agency)
             }
 
@@ -66,12 +68,12 @@ class Prefs(private val context: Context) {
     }
 
     fun setGroup(group: String) {
-        Executors.newSingleThreadExecutor().execute {
+        CoroutineScope(Dispatchers.IO).launch {
             Looper.prepare()
 
             val values = ContentValues().apply {
-                put("id", PrefDatabase.PREF_ROW_GROUP_NUM.toLong())
-                put("param", PrefDatabase.PREF_ROW_GROUP)
+                put("id", ConfigPrefDatabase.PREF_ROW_GROUP_NUM.toLong())
+                put("param", ConfigPrefDatabase.PREF_ROW_GROUP)
                 put("value", group)
             }
 
@@ -81,12 +83,12 @@ class Prefs(private val context: Context) {
     }
 
     fun setResidence(residence: String) {
-        Executors.newSingleThreadExecutor().execute {
+        CoroutineScope(Dispatchers.IO).launch {
             Looper.prepare()
 
             val values = ContentValues().apply {
-                put("id", PrefDatabase.PREF_ROW_RESIDENCE_NUM.toLong())
-                put("param", PrefDatabase.PREF_ROW_RESIDENCE)
+                put("id", ConfigPrefDatabase.PREF_ROW_RESIDENCE_NUM.toLong())
+                put("param", ConfigPrefDatabase.PREF_ROW_RESIDENCE)
                 put("value", residence)
             }
 
@@ -103,7 +105,7 @@ class Prefs(private val context: Context) {
 
             var result = "new"
             val cursor: Cursor? = PrefDatabase.getInstance(context).mPrefDao()
-                .getPrefFromParamWithCursor(PrefDatabase.PREF_ROW_ID_MBR)
+                .getPrefFromParamWithCursor(ConfigPrefDatabase.PREF_ROW_ID_MBR)
 
             if (cursor != null && cursor.moveToFirst()) {
                 result = cursor.getString(2)
@@ -121,7 +123,7 @@ class Prefs(private val context: Context) {
 
             var result = "new"
             val cursor: Cursor? = PrefDatabase.getInstance(context).mPrefDao()
-                .getPrefFromParamWithCursor(PrefDatabase.PREF_ROW_ADR_MAC)
+                .getPrefFromParamWithCursor(ConfigPrefDatabase.PREF_ROW_ADR_MAC)
 
             if (cursor != null && cursor.moveToFirst()) {
                 result = cursor.getString(2)
@@ -139,7 +141,7 @@ class Prefs(private val context: Context) {
 
             var result = ""
             val cursor: Cursor? = PrefDatabase.getInstance(context).mPrefDao()
-                .getPrefFromParamWithCursor(PrefDatabase.PREF_ROW_AGENCY)
+                .getPrefFromParamWithCursor(ConfigPrefDatabase.PREF_ROW_AGENCY)
 
             if (cursor != null && cursor.moveToFirst()) {
                 result = cursor.getString(2)
@@ -157,7 +159,7 @@ class Prefs(private val context: Context) {
 
             var result = ""
             val cursor: Cursor? = PrefDatabase.getInstance(context).mPrefDao()
-                .getPrefFromParamWithCursor(PrefDatabase.PREF_ROW_GROUP)
+                .getPrefFromParamWithCursor(ConfigPrefDatabase.PREF_ROW_GROUP)
 
             if (cursor != null && cursor.moveToFirst()) {
                 result = cursor.getString(2)
@@ -175,7 +177,7 @@ class Prefs(private val context: Context) {
 
             var result = ""
             val cursor: Cursor? = PrefDatabase.getInstance(context).mPrefDao()
-                .getPrefFromParamWithCursor(PrefDatabase.PREF_ROW_RESIDENCE)
+                .getPrefFromParamWithCursor(ConfigPrefDatabase.PREF_ROW_RESIDENCE)
 
             if (cursor != null && cursor.moveToFirst()) {
                 result = cursor.getString(2)

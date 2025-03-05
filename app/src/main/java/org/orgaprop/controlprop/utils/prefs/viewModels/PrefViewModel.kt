@@ -1,4 +1,4 @@
-package org.orgaprop.controlprop.utils.prefs.viewModels
+package org.orgaprop.controlprop.utils.prefs.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

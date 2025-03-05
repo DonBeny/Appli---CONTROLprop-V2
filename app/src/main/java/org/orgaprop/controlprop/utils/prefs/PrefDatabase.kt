@@ -26,21 +26,21 @@ abstract class PrefDatabase : RoomDatabase() {
         private const val TAG = "PrefDatabase"
 
         // Utilisation des constantes de configPrefDatabase
-        private const val PREF_TABLE_NAME = configPrefDatabase.PREF_TABLE_NAME
-        private const val PREF_COL_ID_NAME = configPrefDatabase.PREF_COL_ID_NAME
-        private const val PREF_COL_PARAM_NAME = configPrefDatabase.PREF_COL_PARAM_NAME
-        private const val PREF_COL_VALUE_NAME = configPrefDatabase.PREF_COL_VALUE_NAME
+        private const val PREF_TABLE_NAME = ConfigPrefDatabase.PREF_TABLE_NAME
+        private const val PREF_COL_ID_NAME = ConfigPrefDatabase.PREF_COL_ID_NAME
+        private const val PREF_COL_PARAM_NAME = ConfigPrefDatabase.PREF_COL_PARAM_NAME
+        private const val PREF_COL_VALUE_NAME = ConfigPrefDatabase.PREF_COL_VALUE_NAME
 
-        private const val PREF_ROW_ID_MBR = configPrefDatabase.PREF_ROW_ID_MBR
-        private const val PREF_ROW_ID_MBR_NUM = configPrefDatabase.PREF_ROW_ID_MBR_NUM
-        private const val PREF_ROW_ADR_MAC = configPrefDatabase.PREF_ROW_ADR_MAC
-        private const val PREF_ROW_ADR_MAC_NUM = configPrefDatabase.PREF_ROW_ADR_MAC_NUM
-        private const val PREF_ROW_AGENCY = configPrefDatabase.PREF_ROW_AGENCY
-        private const val PREF_ROW_AGENCY_NUM = configPrefDatabase.PREF_ROW_AGENCY_NUM
-        private const val PREF_ROW_GROUP = configPrefDatabase.PREF_ROW_GROUP
-        private const val PREF_ROW_GROUP_NUM = configPrefDatabase.PREF_ROW_GROUP_NUM
-        private const val PREF_ROW_RESIDENCE = configPrefDatabase.PREF_ROW_RESIDENCE
-        private const val PREF_ROW_RESIDENCE_NUM = configPrefDatabase.PREF_ROW_RESIDENCE_NUM
+        private const val PREF_ROW_ID_MBR = ConfigPrefDatabase.PREF_ROW_ID_MBR
+        private const val PREF_ROW_ID_MBR_NUM = ConfigPrefDatabase.PREF_ROW_ID_MBR_NUM
+        private const val PREF_ROW_ADR_MAC = ConfigPrefDatabase.PREF_ROW_ADR_MAC
+        private const val PREF_ROW_ADR_MAC_NUM = ConfigPrefDatabase.PREF_ROW_ADR_MAC_NUM
+        private const val PREF_ROW_AGENCY = ConfigPrefDatabase.PREF_ROW_AGENCY
+        private const val PREF_ROW_AGENCY_NUM = ConfigPrefDatabase.PREF_ROW_AGENCY_NUM
+        private const val PREF_ROW_GROUP = ConfigPrefDatabase.PREF_ROW_GROUP
+        private const val PREF_ROW_GROUP_NUM = ConfigPrefDatabase.PREF_ROW_GROUP_NUM
+        private const val PREF_ROW_RESIDENCE = ConfigPrefDatabase.PREF_ROW_RESIDENCE
+        private const val PREF_ROW_RESIDENCE_NUM = ConfigPrefDatabase.PREF_ROW_RESIDENCE_NUM
 
         // Singleton
         @Volatile

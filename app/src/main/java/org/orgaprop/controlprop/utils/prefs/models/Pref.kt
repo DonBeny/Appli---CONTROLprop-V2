@@ -5,19 +5,19 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Ignore
 import androidx.room.PrimaryKey
-import org.orgaprop.controlprop.utils.prefs.configPrefDatabase
+import org.orgaprop.controlprop.utils.prefs.ConfigPrefDatabase
 
-@Entity(tableName = configPrefDatabase.PREF_TABLE_NAME)
+@Entity(tableName = ConfigPrefDatabase.PREF_TABLE_NAME)
 data class Pref(
 
     @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = configPrefDatabase.PREF_COL_ID_NAME)
+    @ColumnInfo(name = ConfigPrefDatabase.PREF_COL_ID_NAME)
     var id: Long = 0,
 
-    @ColumnInfo(name = configPrefDatabase.PREF_COL_PARAM_NAME)
+    @ColumnInfo(name = ConfigPrefDatabase.PREF_COL_PARAM_NAME)
     var param: String,
 
-    @ColumnInfo(name = configPrefDatabase.PREF_COL_VALUE_NAME)
+    @ColumnInfo(name = ConfigPrefDatabase.PREF_COL_VALUE_NAME)
     var value: String
 ) {
     @Ignore

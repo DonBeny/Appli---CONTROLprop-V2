@@ -2,11 +2,15 @@ package org.orgaprop.controlprop.ui
 
 import android.content.SharedPreferences
 import android.os.Bundle
+
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import org.orgaprop.controlprop.services.Prefs
+
+import org.orgaprop.controlprop.ControlPropApplication
+import org.orgaprop.controlprop.ui.main.repository.LoginRepository
+import org.orgaprop.controlprop.utils.prefs.Prefs
 import org.orgaprop.controlprop.utils.UiUtils
 
 /**
@@ -19,6 +23,10 @@ abstract class BaseActivity : AppCompatActivity() {
     protected val dataStore = mutableMapOf<String, Any>()
     protected lateinit var preferences: SharedPreferences
     protected lateinit var prefs: Prefs
+
+    // Accès à l'instance de LoginRepository via l'application
+    protected val loginRepository: LoginRepository
+        get() = (application as ControlPropApplication).loginRepository
 
     // ViewModel
     protected inline fun <reified T : ViewModel> getViewModel(): T {

@@ -7,63 +7,63 @@ import androidx.room.Ignore
 import androidx.room.PrimaryKey
 import org.json.JSONException
 import org.json.JSONObject
-import org.orgaprop.controlprop.utils.prefs.configPrefDatabase
+import org.orgaprop.controlprop.utils.prefs.ConfigPrefDatabase
 
-@Entity(tableName = configPrefDatabase.STORAGE_TABLE_NAME)
+@Entity(tableName = ConfigPrefDatabase.STORAGE_TABLE_NAME)
 data class Storage(
     @PrimaryKey(autoGenerate = true)
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_ID)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_ID)
     var id: Long = 0,
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_RESID)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_RESID)
     var resid: Int = 0,
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_DATE)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_DATE)
     var date: Int = 0,
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_CONFIG)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_CONFIG)
     var config: String = "",
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_TYPE_CTRL)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_TYPE_CTRL)
     var typeCtrl: String = "",
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_CTRL_TYPE)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_CTRL_TYPE)
     var ctrl_type: String = "",
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_CTRL_CTRL)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_CTRL_CTRL)
     var ctrl_ctrl: String = "",
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_CTRL_SIG1)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_CTRL_SIG1)
     var ctrl_sig1: String = "",
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_CTRL_SIG2)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_CTRL_SIG2)
     var ctrl_sig2: String = "",
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_CTRL_SIG)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_CTRL_SIG)
     var ctrl_sig: String = "",
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_PLAN_END)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_PLAN_END)
     var plan_end: Int = 0,
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_PLAN_CONTENT)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_PLAN_CONTENT)
     var plan_content: String = "",
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_PLAN_VALIDATE)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_PLAN_VALIDATE)
     var plan_validate: Boolean = false,
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_SEND_DEST)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_SEND_DEST)
     var send_dest: String = "",
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_SEND_ID_PLAN)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_SEND_ID_PLAN)
     var send_idPlan: Int = 0,
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_SEND_DATE_CTRL)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_SEND_DATE_CTRL)
     var send_dateCtrl: Int = 0,
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_SEND_TYPE_CTRL)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_SEND_TYPE_CTRL)
     var send_typeCtrl: String = "",
 
-    @ColumnInfo(name = configPrefDatabase.STORAGE_COL_SEND_SRC)
+    @ColumnInfo(name = ConfigPrefDatabase.STORAGE_COL_SEND_SRC)
     var send_src: String = ""
 ) {
     @Ignore

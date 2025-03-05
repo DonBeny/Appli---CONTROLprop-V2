@@ -1,6 +1,6 @@
 package org.orgaprop.controlprop.utils.prefs
 
-object configPrefDatabase {
+object ConfigPrefDatabase {
 
     const val PREF_TABLE_NAME = "Pref"
     const val PREF_COL_ID_NAME = "id"
