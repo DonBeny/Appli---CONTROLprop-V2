@@ -21,7 +21,7 @@ open class BaseException : Exception {
 
     // Constructeur 2 : Code d'erreur et message
     constructor(code: Int, message: String?) : this(code, message, null) {
-        Log.e(TAG, "Erreur : ${message ?: getMessageForCode(code)}")
+        Log.e(TAG, "Erreur : ${getMessageForCode(code)} : ${message ?: getMessageForCode(code)}")
     }
 
     // Constructeur 3 : Code d'erreur et cause (Exception)
@@ -32,7 +32,7 @@ open class BaseException : Exception {
     // Constructeur 4 : Code d'erreur, message et cause (Exception)
     constructor(code: Int, message: String?, cause: Exception?) : super(message ?: getMessageForCode(code), cause) {
         this.code = code
-        Log.e(TAG, "Erreur : ${message ?: getMessageForCode(code)}", cause)
+        Log.e(TAG, "Erreur : ${getMessageForCode(code)} : ${message ?: getMessageForCode(code)}", cause)
     }
 
     companion object {
