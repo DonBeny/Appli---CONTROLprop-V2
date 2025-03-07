@@ -1,84 +1,105 @@
 package org.orgaprop.controlprop.ui.main
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
-import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
+
 import androidx.lifecycle.Observer
+
 import org.json.JSONException
 import org.json.JSONObject
-import org.orgaprop.controlprop.ControlPropApplication
-import org.orgaprop.controlprop.databinding.ActivityMainBinding
-import org.orgaprop.controlprop.ui.main.viewmodels.MainViewModel
-import org.orgaprop.controlprop.ui.main.viewmodels.MainViewModelFactory
 
-class MainActivity : AppCompatActivity() {
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
+import org.orgaprop.controlprop.databinding.ActivityMainBinding
+import org.orgaprop.controlprop.ui.BaseActivity
+import org.orgaprop.controlprop.ui.HomeActivity
+import org.orgaprop.controlprop.ui.main.types.LoginData
+import org.orgaprop.controlprop.ui.main.viewmodels.MainViewModel
+
+class MainActivity : BaseActivity() {
+
+    private val TAG = "MainActivity"
 
     private lateinit var binding: ActivityMainBinding
-    private val viewModel: MainViewModel by viewModels {
-        MainViewModelFactory((application as ControlPropApplication).loginRepository)
-    }
+    private val viewModel: MainViewModel by viewModel()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG, "onCreate: Activité créée")
         super.onCreate(savedInstanceState)
+
+        Log.d(TAG, "onCreate: Initialize components")
+        initializeComponents()
+
+        Log.d(TAG, "onCreate: Setup components")
+        setupComponents()
+    }
+
+    // Implémentation des méthodes abstraites de BaseActivity
+    override fun initializeComponents() {
+        // Initialisation des composants de l'activité
+        // Par exemple, initialiser les vues ou les variables
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+    }
 
-        // Observer les changements d'état de connexion
+    override fun setupComponents() {
+        // Configuration des composants de l'activité
         viewModel.loginState.observe(this, Observer { state ->
             when (state) {
                 is MainViewModel.LoginState.Loading -> showWait(true)
-                is MainViewModel.LoginState.Success -> startAppli(state.response)
+                is MainViewModel.LoginState.Success -> startAppli(state.data)
                 is MainViewModel.LoginState.LoggedOut -> clearLoginData()
                 is MainViewModel.LoginState.Error -> showError(state.message)
             }
         })
-
-        // Observer les changements d'état de validation des entrées
-        viewModel.validationState.observe(this, Observer { state ->
+        viewModel.logoutState.observe(this, Observer { state ->
             when (state) {
-                is MainViewModel.ValidationState.Valid -> enableLoginButton()
-                is MainViewModel.ValidationState.Invalid -> showError(state.message)
+                is MainViewModel.LogoutState.Loading -> showWait(true)
+                is MainViewModel.LogoutState.Success -> finishAffinity()
+                is MainViewModel.LogoutState.Error -> {
+                    showError(state.message)
+                    finishAffinity()
+                }
             }
         })
 
-        // Observer les changements d'état de version
-        viewModel.versionState.observe(this, Observer { state ->
-            when (state) {
-                is MainViewModel.VersionState.Loading -> showWait(true)
-                is MainViewModel.VersionState.Success -> handleVersionSuccess(state.response)
-                is MainViewModel.VersionState.Error -> showError(state.message)
-            }
-        })
-
-        // Gestion des clics sur les boutons
         binding.mainActivityConnectBtn.setOnClickListener {
             val username = binding.mainActivityUsernameTxt.text.toString()
             val password = binding.mainActivityPasswordTxt.text.toString()
-            viewModel.login(username, password, true)
+            viewModel.login(username, password)
         }
-
         binding.mainActivityDecoBtn.setOnClickListener {
-            val username = binding.mainActivityUsernameTxt.text.toString()
-            val password = binding.mainActivityPasswordTxt.text.toString()
-            viewModel.logout(username, password)
+            val userData = getUserData()
+
+            if (userData != null) {
+                viewModel.logout(userData.idMbr, userData.adrMac)
+            } else {
+                showError("Aucune donnée utilisateur trouvée. Veuillez vous reconnecter.")
+            }
         }
     }
 
-    private fun startAppli(response: JSONObject) {
+    private fun startAppli(data: LoginData) {
         // Logique pour démarrer l'application après une connexion réussie
         Toast.makeText(this, "Connexion réussie", Toast.LENGTH_SHORT).show()
-        // Vous pouvez naviguer vers une autre activité ici
-        val intent = Intent(this, HomeActivity::class.java)
+
+        // Enregistrer les données dans BaseActivity
+        setUserData(data)
+
+        // naviguer vers une autre activité
+        val intent = Intent(this, HomeActivity::class.java) // TODO
         startActivity(intent)
         finish()
     }
 
     private fun clearLoginData() {
-        // Logique pour effacer les données de connexion
+        // Effacer les données de connexion
+        clearUserData()
+
+        // Effacer les champs de saisie
         binding.mainActivityUsernameTxt.text.clear()
         binding.mainActivityPasswordTxt.text.clear()
         Toast.makeText(this, "Déconnexion réussie", Toast.LENGTH_SHORT).show()

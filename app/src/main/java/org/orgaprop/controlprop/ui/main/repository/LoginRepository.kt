@@ -1,15 +1,18 @@
 package org.orgaprop.controlprop.ui.main.repository
 
-import android.content.Context
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
 import org.json.JSONObject
+import org.orgaprop.controlprop.exceptions.BaseException
+import org.orgaprop.controlprop.exceptions.ErrorCodes
+
 import org.orgaprop.controlprop.managers.LoginManager
-import org.orgaprop.test7.security.auth.LoginInterfaces
+import org.orgaprop.controlprop.ui.main.interfaces.LoginInterfaces
 
-class LoginRepository(context: Context) {
+class LoginRepository(private val loginManager: LoginManager) {
 
-    private val loginManager: LoginManager = LoginManager.getInstance(context)
+    private var loginCallback: LoginInterfaces.LoginCallback? = null
 
     /**
      * Tente de connecter un utilisateur.
@@ -19,11 +22,17 @@ class LoginRepository(context: Context) {
      * @param remember Si true, sauvegarde les credentials
      * @return JSONObject contenant la réponse du serveur
      */
-    suspend fun login(username: String, password: String, remember: Boolean): JSONObject {
+    suspend fun login(username: String, password: String): JSONObject {
         return withContext(Dispatchers.IO) {
             try {
-                loginManager.login(username, password, remember).get()
+                val response = loginManager.login(username, password)
+                loginCallback?.onLoginSuccess(response) // Notifier le succès
+                response
+            } catch (e: BaseException) {
+                // Relancer l'exception si elle est déjà une BaseException
+                throw e
             } catch (e: Exception) {
+                loginCallback?.onLoginFailure(e.message ?: "Login failed") // Notifier l'échec
                 throw LoginException("Login failed: ${e.message}", e)
             }
         }
@@ -36,11 +45,17 @@ class LoginRepository(context: Context) {
      * @param password Mot de passe
      * @return JSONObject contenant la réponse du serveur
      */
-    suspend fun logout(username: String, password: String): JSONObject {
+    suspend fun logout(idMbr: Int, adrMac: String): JSONObject {
         return withContext(Dispatchers.IO) {
             try {
-                loginManager.logout(username, password).get()
+                val response = loginManager.logout(idMbr, adrMac)
+                loginCallback?.onLogoutSuccess() // Notifier le succès
+                response
+            } catch (e: BaseException) {
+                // Relancer l'exception si elle est déjà une BaseException
+                throw e
             } catch (e: Exception) {
+                loginCallback?.onLogoutFailure(e.message ?: "Logout failed") // Notifier l'échec
                 throw LoginException("Logout failed: ${e.message}", e)
             }
         }
@@ -56,8 +71,14 @@ class LoginRepository(context: Context) {
     suspend fun checkVersion(idMbr: String, deviceId: String): JSONObject {
         return withContext(Dispatchers.IO) {
             try {
-                loginManager.checkVersion(idMbr, deviceId).get()
+                val response = loginManager.checkVersion(idMbr, deviceId)
+                loginCallback?.onVersionCheckSuccess(response) // Notifier le succès
+                response
+            } catch (e: BaseException) {
+                // Relancer l'exception si elle est déjà une BaseException
+                throw e
             } catch (e: Exception) {
+                loginCallback?.onVersionCheckFailure(e.message ?: "Version check failed") // Notifier l'échec
                 throw LoginException("Version check failed: ${e.message}", e)
             }
         }
@@ -71,29 +92,17 @@ class LoginRepository(context: Context) {
     }
 
     /**
-     * Définit les informations du device.
-     *
-     * @param version Version de l'application
-     * @param phoneName Nom du téléphone
-     * @param phoneModel Modèle du téléphone
-     * @param phoneBuild Version du build
-     */
-    fun setDeviceInfo(version: String, phoneName: String, phoneModel: String, phoneBuild: String) {
-        loginManager.setDeviceInfo(version, phoneName, phoneModel, phoneBuild)
-    }
-
-    /**
      * Définit le callback pour les événements de connexion.
      *
      * @param callback Callback pour les événements de connexion
      */
     fun setLoginCallback(callback: LoginInterfaces.LoginCallback) {
-        loginManager.setLoginCallback(callback)
+        this.loginCallback = callback
     }
 
     /**
      * Exception personnalisée pour les erreurs de connexion.
      */
-    class LoginException(message: String, cause: Throwable) : Exception(message, cause)
+    class LoginException(message: String, cause: Throwable) : BaseException(ErrorCodes.LOGIN_FAILED, message, cause)
 
 }

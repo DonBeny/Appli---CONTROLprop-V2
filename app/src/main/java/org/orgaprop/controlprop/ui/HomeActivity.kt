@@ -1,0 +1,34 @@
+package org.orgaprop.controlprop.ui
+
+import android.os.Bundle
+import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import org.orgaprop.controlprop.R
+import org.orgaprop.controlprop.databinding.ActivityHomeBinding
+
+class HomeActivity : BaseActivity() {
+
+    private lateinit var binding: ActivityHomeBinding
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        initializeComponents()
+        setupComponents()
+    }
+
+    override fun initializeComponents() {
+        binding = ActivityHomeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+    }
+
+    override fun setupComponents() {
+        val userData = getUserData()
+        val mess = userData?.idMbr.toString() + " => " + userData?.adrMac
+
+        binding.homeActivityTextView.text = mess
+    }
+
+}

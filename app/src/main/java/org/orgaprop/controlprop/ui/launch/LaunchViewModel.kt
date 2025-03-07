@@ -1,4 +1,4 @@
-package org.orgaprop.controlprop.ui.splash
+package org.orgaprop.controlprop.ui.launch
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -8,7 +8,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-class SplashViewModel : ViewModel() {
+class LaunchViewModel : ViewModel() {
 
     private val _navigationEvent = MutableLiveData<Unit>()
     val navigationEvent: LiveData<Unit> get() = _navigationEvent
@@ -18,7 +18,7 @@ class SplashViewModel : ViewModel() {
 
     fun delayedNavigateToMain() {
         CoroutineScope(Dispatchers.Main).launch {
-            delay(SplashScreenActivityConfig.SPLASH_SCREEN_DELAY)
+            delay(LaunchActivityConfig.SPLASH_SCREEN_DELAY)
             navigateToMain()
         }
     }

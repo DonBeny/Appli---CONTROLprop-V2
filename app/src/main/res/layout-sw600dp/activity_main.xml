@@ -11,7 +11,7 @@
 
     android:background="@drawable/new_image_fond_tablette"
 
-    tools:context=".controllers.activities.MainActivity">
+    tools:context=".ui.main.MainActivity">
 
     <androidx.constraintlayout.widget.ConstraintLayout android:id="@+id/main_activity_connect_lyt"
         android:layout_width="match_parent"

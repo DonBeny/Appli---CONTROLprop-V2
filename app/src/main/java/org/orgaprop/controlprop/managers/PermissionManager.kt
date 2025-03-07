@@ -79,7 +79,8 @@ class PermissionManager(private val activity: AppCompatActivity) {
                 callback.onResult(true)
                 true
             } else {
-                requestPermissions(permissionsToRequest, object : PermissionResultCallback {
+                requestPermissions(permissionsToRequest, callback)
+                /*requestPermissions(permissionsToRequest, object : PermissionResultCallback {
                     override fun onResult(granted: Boolean) {
                         callback.onResult(granted)
                     }
@@ -92,7 +93,7 @@ class PermissionManager(private val activity: AppCompatActivity) {
                         )
                         callback.onError(baseException)
                     }
-                })
+                })*/
                 false
             }
         } catch (e: Exception) {
@@ -173,7 +174,11 @@ class PermissionManager(private val activity: AppCompatActivity) {
      * @return Liste des permissions non accordées.
      */
     private fun getPermissionsToRequest(permissions: Array<String>): List<String> {
-        return permissions.filter { !isPermissionGranted(it) }
+        return permissions.filter {
+            val isGranted = !isPermissionGranted(it)
+            Log.d(TAG, "Permission $it is ${if (isGranted) "granted" else "denied"}")
+            !isGranted
+        }
     }
 
     /**
@@ -206,12 +211,12 @@ class PermissionManager(private val activity: AppCompatActivity) {
     /**
      * Groupe les permissions requises par catégorie.
      */
-    enum class PermissionGroup(vararg permissions: String) {
+    enum class PermissionGroup(vararg perm: String) {
         STORAGE(Manifest.permission.WRITE_EXTERNAL_STORAGE),
         CALENDAR(Manifest.permission.READ_CALENDAR, Manifest.permission.WRITE_CALENDAR),
         NETWORK(Manifest.permission.INTERNET);
 
-        val permissions: Array<out String> = permissions
+        val permissions: Array<out String> = perm
     }
 
     /**

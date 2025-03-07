@@ -97,15 +97,15 @@
     <string name="wait">wait</string>
     <string name="zones_proxi">Proximity zones</string>
     <string name="zones_contrat">Contract zones</string>
-		<string name="email_sent">Un email vous a été envoyé</string>
+    <string name="email_sent">Un email vous a été envoyé</string>
     <string name="invalid_email">Adresse email invalide</string>
     <string name="no_network">Pas de connexion réseau</string>
-		<string name="update_critical_title">Mise à jour requise</string>
+    <string name="update_critical_title">Mise à jour requise</string>
     <string name="update_critical_message">Une mise à jour critique est nécessaire pour continuer à utiliser l\'application. Veuillez mettre à jour pour continuer.</string>
     <string name="update_warning_message">La mise à jour a échoué. Certaines fonctionnalités pourraient ne pas fonctionner correctement.</string>
     <string name="retry">Réessayer</string>
     <string name="quit">Quitter</string>
-		<!-- Messages d'erreur -->
+    <!-- Messages d'erreur -->
     <string name="err_version_mismatch">Version incompatible (locale: %1$d, serveur: %2$d)</string>
     <string name="err_version_outdated">Version obsolète. Veuillez mettre à jour l\'application</string>
     <string name="err_device_not_recognized">Appareil non reconnu</string>
@@ -115,13 +115,13 @@
     <string name="err_unknown">Une erreur inattendue s\'est produite</string>
     <string name="err_json_parse">Erreur de traitement des données: %1$s</string>
     <string name="err_unexpected">Erreur inattendue: %1$s</string>
-		<!-- Messages de validation -->
+    <!-- Messages de validation -->
     <string name="err_username_empty">Le nom d\'utilisateur ne peut pas être vide</string>
     <string name="err_password_empty">Le mot de passe ne peut pas être vide</string>
     <string name="err_username_too_short">Le nom d\'utilisateur doit contenir au moins 3 caractères</string>
     <string name="err_password_too_short">Le mot de passe doit contenir au moins 6 caractères</string>
     <string name="err_rgpd">Vous devez acepter les thermes de la licence pour continuer.</string>
-		<!-- Chaînes d'accessibilité -->
+    <!-- Chaînes d'accessibilité -->
     <string name="accessibility_username">Champ de saisie du nom d\'utilisateur</string>
     <string name="accessibility_password">Champ de saisie du mot de passe</string>
     <string name="accessibility_connect_button">Bouton de connexion</string>

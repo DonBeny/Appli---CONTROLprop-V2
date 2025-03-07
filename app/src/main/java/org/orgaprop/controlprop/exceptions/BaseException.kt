@@ -25,12 +25,12 @@ open class BaseException : Exception {
     }
 
     // Constructeur 3 : Code d'erreur et cause (Exception)
-    constructor(code: Int, cause: Exception?) : this(code, null, cause) {
+    constructor(code: Int, cause: Throwable?) : this(code, null, cause) {
         Log.e(TAG, "Erreur : ${getMessageForCode(code)}", cause)
     }
 
     // Constructeur 4 : Code d'erreur, message et cause (Exception)
-    constructor(code: Int, message: String?, cause: Exception?) : super(message ?: getMessageForCode(code), cause) {
+    constructor(code: Int, message: String?, cause: Throwable?) : super(message ?: getMessageForCode(code), cause) {
         this.code = code
         Log.e(TAG, "Erreur : ${getMessageForCode(code)} : ${message ?: getMessageForCode(code)}", cause)
     }

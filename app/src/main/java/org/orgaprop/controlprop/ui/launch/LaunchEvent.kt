@@ -1,8 +1,8 @@
-package org.orgaprop.controlprop.ui.splash
+package org.orgaprop.controlprop.ui.launch
 
-sealed class SplashScreenEvent {
+sealed class LaunchEvent {
 
-    object NavigateToMain : SplashScreenEvent()
-    data class ShowError(val message: String) : SplashScreenEvent()
+    object NavigateToMain : LaunchEvent()
+    data class ShowError(val message: String) : LaunchEvent()
 
 }

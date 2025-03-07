@@ -1,19 +1,27 @@
 package org.orgaprop.controlprop
 
 import android.app.Application
-import org.orgaprop.controlprop.managers.LoginManager
-import org.orgaprop.controlprop.ui.main.repository.LoginRepository
+import android.util.Log
+
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.startKoin
+
+import org.orgaprop.controlprop.di.appModule
 
 class ControlPropApplication : Application() {
 
-    // Instance unique de LoginRepository
-    val loginRepository: LoginRepository by lazy {
-        LoginRepository(LoginManager.getInstance(this))
-    }
+    private val TAG = "ControlPropApplication"
 
     override fun onCreate() {
         super.onCreate()
-        // Vous pouvez initialiser d'autres dépendances globales ici si nécessaire
+
+        Log.d(TAG, "onCreate: Application started")
+
+        // Démarrer Koin
+        startKoin {
+            androidContext(this@ControlPropApplication)
+            modules(appModule)
+        }
     }
 
 }

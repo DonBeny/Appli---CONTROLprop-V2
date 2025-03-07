@@ -2,16 +2,18 @@ package org.orgaprop.controlprop.ui
 
 import android.content.SharedPreferences
 import android.os.Bundle
+import android.util.Log
 
-import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 
-import org.orgaprop.controlprop.ControlPropApplication
+import org.koin.android.ext.android.inject
+
 import org.orgaprop.controlprop.ui.main.repository.LoginRepository
+import org.orgaprop.controlprop.ui.main.types.LoginData
+import org.orgaprop.controlprop.utils.network.NetworkMonitor
 import org.orgaprop.controlprop.utils.prefs.Prefs
-import org.orgaprop.controlprop.utils.UiUtils
 
 /**
  * Classe mère pour toutes les activités de l'application.
@@ -19,14 +21,16 @@ import org.orgaprop.controlprop.utils.UiUtils
  */
 abstract class BaseActivity : AppCompatActivity() {
 
+    private val TAG = "BaseActivity"
+
     // Données partagées
     protected val dataStore = mutableMapOf<String, Any>()
     protected lateinit var preferences: SharedPreferences
     protected lateinit var prefs: Prefs
 
     // Accès à l'instance de LoginRepository via l'application
-    protected val loginRepository: LoginRepository
-        get() = (application as ControlPropApplication).loginRepository
+    protected val loginRepository: LoginRepository by inject()
+    protected val NetworkMonitor: NetworkMonitor by inject()
 
     // ViewModel
     protected inline fun <reified T : ViewModel> getViewModel(): T {
@@ -34,9 +38,16 @@ abstract class BaseActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG, "onCreate: Activité créée")
         super.onCreate(savedInstanceState)
+
+        Log.d(TAG, "onCreate: Initialize shared data")
         initializeSharedData()
+
+        Log.d(TAG, "onCreate: Initialize components")
         initializeComponents()
+
+        Log.d(TAG, "onCreate: Setup components")
         setupComponents()
     }
 
@@ -57,24 +68,6 @@ abstract class BaseActivity : AppCompatActivity() {
      * Configure les composants de l'activité.
      */
     protected abstract fun setupComponents()
-
-    /**
-     * Affiche un message d'erreur.
-     *
-     * @param messageId L'ID du message à afficher.
-     */
-    protected fun showError(@StringRes messageId: Int) {
-        UiUtils.showToast(this, messageId)
-    }
-
-    /**
-     * Affiche ou masque un indicateur de chargement.
-     *
-     * @param show true pour afficher l'indicateur, false pour le masquer.
-     */
-    protected fun showWait(show: Boolean) {
-        // À implémenter dans les classes filles si nécessaire
-    }
 
     /**
      * Stocke une donnée dans le dataStore.
@@ -107,6 +100,30 @@ abstract class BaseActivity : AppCompatActivity() {
         if (key.isNotEmpty()) {
             dataStore.remove(key)
         }
+    }
+    /**
+     * Enregistre les données de l'utilisateur après une connexion réussie.
+     *
+     * @param data Les données de l'utilisateur.
+     */
+    fun setUserData(data: LoginData) {
+        putData("userData", data)
+    }
+
+    /**
+     * Récupère les données de l'utilisateur.
+     *
+     * @return Les données de l'utilisateur, ou null si elles n'existent pas.
+     */
+    fun getUserData(): LoginData? {
+        return getData("userData") as? LoginData
+    }
+
+    /**
+     * Efface les données de l'utilisateur lors de la déconnexion.
+     */
+    fun clearUserData() {
+        removeData("userData")
     }
 
 }

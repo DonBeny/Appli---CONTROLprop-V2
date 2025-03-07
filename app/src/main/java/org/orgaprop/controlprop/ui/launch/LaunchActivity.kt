@@ -1,46 +1,54 @@
-package org.orgaprop.controlprop.ui.splash
+package org.orgaprop.controlprop.ui.launch
 
 import android.content.Intent
-import android.content.pm.ActivityInfo
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import org.orgaprop.controlprop.BuildConfig
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import org.orgaprop.controlprop.R
-import org.orgaprop.controlprop.databinding.ActivitySplashScreenBinding
 import org.orgaprop.controlprop.ui.main.MainActivity
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.managers.PermissionManager
 import org.orgaprop.controlprop.managers.UpdateManager
 
-class SplashScreenActivity : AppCompatActivity() {
+class LaunchActivity : AppCompatActivity() {
 
-    private val TAG = "SplashScreenActivity"
+    private val TAG = "LaunchActivity"
 
-    private lateinit var binding: ActivitySplashScreenBinding
-    private val viewModel: SplashViewModel by viewModels()
+    private val viewModel: LaunchViewModel by viewModels()
 
-    private val permissionManager = PermissionManager(this)
-    private val updateManager = UpdateManager(this)
+    private lateinit var permissionManager: PermissionManager
+    //private lateinit var updateManager: UpdateManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        Log.d(TAG, "onCreate: Installing SplashScreen")
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
+
+        Log.d(TAG, "onCreate: Initialize components")
         initializeComponents()
+
+        Log.d(TAG, "onCreate: Installing observers")
         observeViewModel()
+
+        Log.d(TAG, "onCreate: Checking permissions")
         checkPermissionsAndUpdate()
     }
 
     private fun initializeComponents() {
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT)
-        binding = ActivitySplashScreenBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+        //binding = ActivityLaunchBinding.inflate(layoutInflater)
+        //setContentView(binding.root)
 
-        updateManager.initializeLauncher(::handleUpdateResult)
-        displayVersion()
+        permissionManager = PermissionManager(this)
+
+        //updateManager = UpdateManager(this)
+        //updateManager.initializeLauncher(::handleUpdateResult)
+
+        //displayVersion()
 
         Log.d(TAG, "initialized");
     }
@@ -56,7 +64,10 @@ class SplashScreenActivity : AppCompatActivity() {
         permissionManager.checkRequiredPermissions(object : PermissionManager.PermissionResultCallback {
             override fun onResult(granted: Boolean) {
                 if (granted) {
-                    startUpdateCheck()
+                    //startUpdateCheck()
+
+                    Log.d(TAG, "Permission granted")
+                    navigateToMain()
                 } else {
                     showError(getString(R.string.error_permission_denied))
                 }
@@ -67,7 +78,7 @@ class SplashScreenActivity : AppCompatActivity() {
             }
         })
     }
-
+/*
     private fun startUpdateCheck() {
         if (isFromPlayStore()) {
             updateManager.checkForUpdates(
@@ -79,19 +90,16 @@ class SplashScreenActivity : AppCompatActivity() {
         }
     }
 
-    private fun displayVersion() {
-        binding.splashScreenActivityVersionTxt.text = getString(R.string.version_format, BuildConfig.VERSION_NAME)
-    }
-
     private fun delayedNavigateToMain() {
         viewModel.delayedNavigateToMain()
     }
-
+    */
     private fun navigateToMain() {
+        Log.d(TAG, "navigateToMain: Navigating to MainActivity")
         startActivity(Intent(this, MainActivity::class.java))
         finish()
     }
-
+/*
     private fun handleUpdateResult(success: Boolean) {
         if (success) {
             viewModel.navigateToMain()
@@ -129,7 +137,7 @@ class SplashScreenActivity : AppCompatActivity() {
             throw BaseException(ErrorCodes.PERMISSION_ERROR, "Impossible de déterminer l'origine de l'installation", e)
         }
     }
-
+*/
     private fun showError(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }

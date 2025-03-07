@@ -1,6 +1,6 @@
-package org.orgaprop.controlprop.ui.splash
+package org.orgaprop.controlprop.ui.launch
 
-class SplashViewState {
+class LaunchViewState {
 
 
 
