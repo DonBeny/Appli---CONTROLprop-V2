@@ -1,23 +1,22 @@
 package org.orgaprop.controlprop.ui.main
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Toast
-
 import androidx.lifecycle.Observer
-
 import org.json.JSONException
 import org.json.JSONObject
-
 import org.koin.androidx.viewmodel.ext.android.viewModel
-
+import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.databinding.ActivityMainBinding
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.HomeActivity
 import org.orgaprop.controlprop.ui.main.types.LoginData
 import org.orgaprop.controlprop.ui.main.viewmodels.MainViewModel
+
 
 class MainActivity : BaseActivity() {
 
@@ -35,6 +34,8 @@ class MainActivity : BaseActivity() {
 
         Log.d(TAG, "onCreate: Setup components")
         setupComponents()
+
+        loadSavedCredentials()
     }
 
     // Implémentation des méthodes abstraites de BaseActivity
@@ -66,9 +67,23 @@ class MainActivity : BaseActivity() {
             }
         })
 
+        binding.mainActivityRgpdTxt.setOnClickListener {
+            openWebPage()
+        }
+        binding.mainActivityMailBtn.setOnClickListener {
+            val intent = Intent(this, GetMailActivity::class.java)
+            startActivity(intent)
+        }
         binding.mainActivityConnectBtn.setOnClickListener {
+            val check = binding.mainActivityRgpdChx.isChecked
             val username = binding.mainActivityUsernameTxt.text.toString()
             val password = binding.mainActivityPasswordTxt.text.toString()
+
+            if (!check) {
+                showError(getString(R.string.error_rgpd))
+                return@setOnClickListener
+            }
+
             viewModel.login(username, password)
         }
         binding.mainActivityDecoBtn.setOnClickListener {
@@ -86,8 +101,11 @@ class MainActivity : BaseActivity() {
         // Logique pour démarrer l'application après une connexion réussie
         Toast.makeText(this, "Connexion réussie", Toast.LENGTH_SHORT).show()
 
+        val username = binding.mainActivityUsernameTxt.text.toString()
+        val password = binding.mainActivityPasswordTxt.text.toString()
+
         // Enregistrer les données dans BaseActivity
-        setUserData(data)
+        setUserData(data, username, password)
 
         // naviguer vers une autre activité
         val intent = Intent(this, HomeActivity::class.java) // TODO
@@ -117,6 +135,28 @@ class MainActivity : BaseActivity() {
     private fun showError(message: String) {
         // Afficher un message d'erreur
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    /**
+     * Charge les identifiants enregistrés et les affiche dans les champs de saisie.
+     */
+    private fun loadSavedCredentials() {
+        val username = getUsername()
+        val password = getPassword()
+
+        Log.d(TAG, "loadSavedCredentials: Username: $username, Password: $password")
+
+        if (username != null && password != null) {
+            binding.mainActivityUsernameTxt.setText(username)
+            binding.mainActivityPasswordTxt.setText(password)
+            viewModel.login(username, password)
+        }
+    }
+
+    private fun openWebPage() {
+        val url = "https://www.orgaprop.org/ress/protectDonneesPersonnelles.html"
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+        startActivity(intent)
     }
 
     private fun enableLoginButton() {

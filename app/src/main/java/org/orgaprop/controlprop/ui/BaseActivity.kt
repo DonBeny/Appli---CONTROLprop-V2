@@ -106,8 +106,21 @@ abstract class BaseActivity : AppCompatActivity() {
      *
      * @param data Les données de l'utilisateur.
      */
-    fun setUserData(data: LoginData) {
+    fun setUserData(data: LoginData, pseudo: String, password: String) {
+        Log.d(TAG, "setUserData: $data")
+
         putData("userData", data)
+
+        prefs.setMbr(data.idMbr.toString())
+        prefs.setAdrMac(data.adrMac)
+
+        preferences.edit().apply {
+            putString("username", pseudo)
+            putString("password", password)
+            apply()
+        }
+
+        Log.d(TAG, "setUserData: Données enregistrées => "+preferences.getString("username", "null"))
     }
 
     /**
@@ -123,7 +136,25 @@ abstract class BaseActivity : AppCompatActivity() {
      * Efface les données de l'utilisateur lors de la déconnexion.
      */
     fun clearUserData() {
-        removeData("userData")
+        //removeData("userData")
+    }
+
+    /**
+     * Récupère le nom d'utilisateur enregistré.
+     *
+     * @return Le nom d'utilisateur, ou null s'il n'existe pas.
+     */
+    fun getUsername(): String? {
+        return preferences.getString("username", null)
+    }
+
+    /**
+     * Récupère le mot de passe enregistré.
+     *
+     * @return Le mot de passe déchiffré, ou null s'il n'existe pas.
+     */
+    fun getPassword(): String? {
+        return preferences.getString("password", null)
     }
 
 }

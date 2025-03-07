@@ -3,7 +3,7 @@
     <string name="btn_cancel">Annuler</string>
     <string name="btn_connexion">CONNEXION</string>
     <string name="btn_deco">DECONNEXION</string>
-    <string name="btn_requet_mail">J\'ai oublié mes identifiants</string>
+    <string name="btn_requet_mail">J\'ai un problème pour me connecter</string>
     <string name="btn_requet_robot">J\'ai oublié de me déconnecter</string>
     <string name="btn_start">Commencer</string>
     <string name="btn_valid">Valider</string>
@@ -130,4 +130,5 @@
     <string name="error_permission_denied">La plupart des fonctions vous seront inaccessibles.</string>
     <string name="error_update_check">Une erreur s\'est produite lors de la vérification de la mise à jour. Redémarrez votre application.</string>
     <string name="version_format">Version: %s</string>
+    <string name="error_rgpd">Vous devez accepter les règles RGPD pour continuer</string>
 </resources>
