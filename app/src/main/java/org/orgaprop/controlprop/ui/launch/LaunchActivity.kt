@@ -3,6 +3,7 @@ package org.orgaprop.controlprop.ui.splash
 import android.content.Intent
 import android.content.pm.ActivityInfo
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
@@ -17,6 +18,8 @@ import org.orgaprop.controlprop.managers.PermissionManager
 import org.orgaprop.controlprop.managers.UpdateManager
 
 class SplashScreenActivity : AppCompatActivity() {
+
+    private val TAG = "SplashScreenActivity"
 
     private lateinit var binding: ActivitySplashScreenBinding
     private val viewModel: SplashViewModel by viewModels()
@@ -38,11 +41,15 @@ class SplashScreenActivity : AppCompatActivity() {
 
         updateManager.initializeLauncher(::handleUpdateResult)
         displayVersion()
+
+        Log.d(TAG, "initialized");
     }
 
     private fun observeViewModel() {
         viewModel.navigationEvent.observe(this) { navigateToMain() }
         viewModel.errorEvent.observe(this) { showError(it) }
+
+        Log.d(TAG, "observed");
     }
 
     private fun checkPermissionsAndUpdate() {
