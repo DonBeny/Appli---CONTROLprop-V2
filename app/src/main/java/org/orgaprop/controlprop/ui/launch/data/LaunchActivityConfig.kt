@@ -1,4 +1,4 @@
-package org.orgaprop.controlprop.ui.launch
+package org.orgaprop.controlprop.ui.launch.data
 
 object LaunchActivityConfig {
 

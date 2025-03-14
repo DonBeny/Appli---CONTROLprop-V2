@@ -11,6 +11,7 @@ data class LoginData(
     val version: Int,
     val idMbr: Int,
     val adrMac: String,
+    val hasContrat: Boolean,
     val info: InfoConf,
     val limits: Limits,
     val planActions: String

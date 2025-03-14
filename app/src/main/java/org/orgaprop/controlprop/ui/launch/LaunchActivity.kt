@@ -5,15 +5,12 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.ui.main.MainActivity
-import org.orgaprop.controlprop.exceptions.BaseException
-import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.managers.PermissionManager
-import org.orgaprop.controlprop.managers.UpdateManager
+import org.orgaprop.controlprop.viewmodels.LaunchViewModel
 
 class LaunchActivity : AppCompatActivity() {
 

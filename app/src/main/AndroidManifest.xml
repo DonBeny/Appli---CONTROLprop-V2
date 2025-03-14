@@ -15,12 +15,12 @@
         android:roundIcon="@mipmap/ic_launcher_app_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.App">
-
+        <activity
+            android:name=".ui.selectentry.SelectEntryActivity"
+            android:exported="false" />
         <activity
             android:name=".ui.HomeActivity"
-            android:exported="false" />
-
-        <!-- Activité de démarrage (SplashScreen) -->
+            android:exported="false" /> <!-- Activité de démarrage (SplashScreen) -->
         <activity
             android:name=".ui.launch.LaunchActivity"
             android:exported="true"
@@ -31,13 +31,13 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
-        <!-- Activité principale (MainActivity) -->
+        </activity> <!-- Activité principale (MainActivity) -->
         <activity
             android:name=".ui.main.MainActivity"
-            android:exported="false"/>
-
+            android:exported="false" />
+        <activity
+            android:name=".ui.getmail.GetMailActivity"
+            android:exported="false" />
     </application>
 
 </manifest>

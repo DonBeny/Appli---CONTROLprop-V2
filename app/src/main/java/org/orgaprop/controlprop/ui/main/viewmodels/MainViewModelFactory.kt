@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import org.orgaprop.controlprop.ui.main.repository.LoginRepository
 import org.orgaprop.controlprop.utils.network.NetworkMonitor
+import org.orgaprop.controlprop.viewmodels.MainViewModel
 
 class MainViewModelFactory(private val loginRepository: LoginRepository, private val networkMonitor: NetworkMonitor) : ViewModelProvider.Factory {
 

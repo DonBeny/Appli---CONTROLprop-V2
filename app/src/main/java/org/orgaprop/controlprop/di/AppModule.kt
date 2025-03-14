@@ -5,12 +5,18 @@ import android.util.Log
 
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
+import org.orgaprop.controlprop.managers.GetMailManager
 
-import org.orgaprop.controlprop.managers.LoginManager
-import org.orgaprop.controlprop.ui.main.repository.LoginRepository
-import org.orgaprop.controlprop.ui.main.viewmodels.MainViewModel
 import org.orgaprop.controlprop.utils.HttpTask
 import org.orgaprop.controlprop.utils.network.NetworkMonitor
+import org.orgaprop.controlprop.ui.main.repository.LoginRepository
+import org.orgaprop.controlprop.managers.LoginManager
+import org.orgaprop.controlprop.managers.SelectEntryManager
+import org.orgaprop.controlprop.managers.SelectListManager
+import org.orgaprop.controlprop.viewmodels.MainViewModel
+import org.orgaprop.controlprop.viewmodels.GetMailViewModel
+import org.orgaprop.controlprop.viewmodels.SelectEntryViewModel
+import org.orgaprop.controlprop.viewmodels.SelectListViewModel
 
 val appModule = module {
 
@@ -38,10 +44,42 @@ val appModule = module {
         NetworkMonitor
     }
 
+    single {
+        Log.e("AppModule", "Creating GetMailManager...")
+        GetMailManager(get(), get())
+    }
+
+    single {
+        Log.e("AppModule", "Creating SelectListManager...")
+        SelectEntryManager(get(), get())
+    }
+    // Déclarer SelectListManager comme un singleton
+    single {
+        Log.e("AppModule", "Creating SelectListManager...")
+        SelectListManager(get(), get())
+    }
+
+
     // Définir MainViewModel comme une dépendance injectable
     viewModel {
         Log.e("AppModule", "Creating MainViewModel...")
         MainViewModel(get(), get())
+    }
+
+    viewModel {
+        Log.e("AppModule", "Creating GetMailViewModel...")
+        GetMailViewModel(get(), get())
+    }
+
+    viewModel {
+        Log.e("AppModule", "Creating SelectEntryViewModel...")
+        SelectEntryViewModel(get())
+    }
+
+    // Déclarer SelectListViewModel comme une dépendance injectable
+    viewModel {
+        Log.e("AppModule", "Creating SelectListViewModel...")
+        SelectListViewModel(get())
     }
 
 }

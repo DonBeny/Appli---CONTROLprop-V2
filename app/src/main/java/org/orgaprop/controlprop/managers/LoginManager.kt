@@ -58,6 +58,29 @@ class LoginManager(
         }
     }
 
+    suspend fun checkLogin(username: String, password: String, adrMac: String): JSONObject {
+        return try {
+            val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
+            val appVersion = packageInfo.versionName
+            val paramsPost = JSONObject().apply {
+                put("psd", username)
+                put("mdp", password)
+                put("mac", adrMac)
+                put("appVersion", appVersion)
+            }.toString()
+
+            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_CBL_TEST, "", paramsPost)
+            val jsonObject = JSONObject(response)
+            jsonObject
+        } catch (e: IOException) {
+            throw LoginException(ErrorCodes.NETWORK_ERROR, e)
+        } catch (e: JSONException) {
+            throw LoginException(ErrorCodes.INVALID_RESPONSE, e)
+        } catch (e: Exception) {
+            throw LoginException(ErrorCodes.UNKNOWN_ERROR, e)
+        }
+    }
+
     // Simuler un appel réseau pour la déconnexion
     suspend fun logout(idMbr: Int, adrMac: String): JSONObject {
         return try {

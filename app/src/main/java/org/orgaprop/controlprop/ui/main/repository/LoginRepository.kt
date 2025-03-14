@@ -61,6 +61,22 @@ class LoginRepository(private val loginManager: LoginManager) {
         }
     }
 
+    suspend fun checkLogin(username: String, password: String, adrMac: String): JSONObject {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = loginManager.checkLogin(username, password, adrMac)
+                loginCallback?.onLoginSuccess(response) // Notifier le succès
+                response
+            } catch (e: BaseException) {
+                // Relancer l'exception si elle est déjà une BaseException
+                throw e
+            } catch (e: Exception) {
+                loginCallback?.onLoginFailure(e.message ?: "Login failed") // Notifier l'échec
+                throw LoginException("Login failed: ${e.message}", e)
+            }
+        }
+    }
+
     /**
      * Vérifie la version de l'application avec le serveur.
      *

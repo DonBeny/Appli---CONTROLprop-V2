@@ -117,6 +117,7 @@ abstract class BaseActivity : AppCompatActivity() {
         preferences.edit().apply {
             putString("username", pseudo)
             putString("password", password)
+            putString("adrMac", data.adrMac)
             apply()
         }
 
@@ -155,6 +156,15 @@ abstract class BaseActivity : AppCompatActivity() {
      */
     fun getPassword(): String? {
         return preferences.getString("password", null)
+    }
+
+    /**
+     * Récupère l'adresse MAC enregistrée.
+     *
+     * @return L'adresse MAC, ou null s'il n'existe pas.
+     */
+    fun getAdrMac(): String? {
+        return preferences.getString("adrMac", null)
     }
 
 }

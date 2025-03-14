@@ -1,4 +1,4 @@
-package org.orgaprop.controlprop.ui.main.viewmodels
+package org.orgaprop.controlprop.viewmodels
 
 import android.util.Log
 import androidx.lifecycle.LiveData
@@ -93,6 +93,24 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
         }
     }
 
+    fun checkLogin(username: String, password: String, adrMac: String) {
+        viewModelScope.launch {
+            _loginState.value = LoginState.Loading
+            try {
+                val responseJson = loginRepository.checkLogin(username, password, adrMac)
+                val response = parseLoginResponse(responseJson)
+
+                if (response.status) {
+                    _loginState.value = LoginState.Success(response.data!!)
+                } else {
+                    _loginState.value = LoginState.Error(response.error!!.txt)
+                }
+            } catch (e: BaseException) {
+                _loginState.value = LoginState.Error(e.message ?: "Erreur de connexion")
+            }
+        }
+    }
+
     private fun parseLoginResponse(responseJson: JSONObject): LoginResponse {
         return try {
             Log.d(TAG, "parseLoginResponse: $responseJson")
@@ -113,6 +131,7 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
                         version = data.getInt("version"),
                         idMbr = data.getInt("idMbr"),
                         adrMac = data.getString("adrMac"),
+                        hasContrat = data.getBoolean("hasContrat"),
                         info = parseInfoConf(data.getJSONObject("info")),
                         limits = parseLimits(data.getJSONObject("limits")),
                         planActions = data.getString("planActions")

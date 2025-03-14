@@ -14,8 +14,9 @@ import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.databinding.ActivityMainBinding
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.HomeActivity
+import org.orgaprop.controlprop.ui.getmail.GetMailActivity
 import org.orgaprop.controlprop.ui.main.types.LoginData
-import org.orgaprop.controlprop.ui.main.viewmodels.MainViewModel
+import org.orgaprop.controlprop.viewmodels.MainViewModel
 
 
 class MainActivity : BaseActivity() {
@@ -67,7 +68,7 @@ class MainActivity : BaseActivity() {
             }
         })
 
-        binding.mainActivityRgpdTxt.setOnClickListener {
+        binding.mainActivityRgpdTxt?.setOnClickListener {
             openWebPage()
         }
         binding.mainActivityMailBtn.setOnClickListener {
@@ -143,13 +144,14 @@ class MainActivity : BaseActivity() {
     private fun loadSavedCredentials() {
         val username = getUsername()
         val password = getPassword()
+        val adrMac = getAdrMac()
 
         Log.d(TAG, "loadSavedCredentials: Username: $username, Password: $password")
 
-        if (username != null && password != null) {
+        if (username != null && password != null && adrMac != null) {
             binding.mainActivityUsernameTxt.setText(username)
             binding.mainActivityPasswordTxt.setText(password)
-            viewModel.login(username, password)
+            viewModel.checkLogin(username, password, adrMac)
         }
     }
 
