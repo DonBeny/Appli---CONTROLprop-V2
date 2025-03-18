@@ -1,7 +1,9 @@
 package org.orgaprop.controlprop.models
 
-import java.io.Serializable
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
 
+@Parcelize
 data class SelectItem(
     val id: Int,
     val agency: Int = 0,
@@ -16,4 +18,4 @@ data class SelectItem(
     val delay: Boolean = false,
     val comment: String = "",
     val type: String = ""
-) : Serializable
+) : Parcelable

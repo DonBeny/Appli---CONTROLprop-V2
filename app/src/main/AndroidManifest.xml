@@ -16,12 +16,6 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.App">
         <activity
-            android:name=".ui.selectentry.SelectEntryActivity"
-            android:exported="false" />
-        <activity
-            android:name=".ui.HomeActivity"
-            android:exported="false" /> <!-- Activité de démarrage (SplashScreen) -->
-        <activity
             android:name=".ui.launch.LaunchActivity"
             android:exported="true"
             android:theme="@style/Theme.App.Starting">
@@ -31,12 +25,21 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity> <!-- Activité principale (MainActivity) -->
+        </activity>
         <activity
             android:name=".ui.main.MainActivity"
             android:exported="false" />
         <activity
             android:name=".ui.getmail.GetMailActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.selectentry.SelectEntryActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.selectlist.SelectListActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ui.HomeActivity"
             android:exported="false" />
     </application>
 

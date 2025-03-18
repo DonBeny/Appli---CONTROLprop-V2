@@ -37,7 +37,7 @@ data class Limits(
 )
 
 data class Rapport(
-    val value: Int, // `val` est un mot-clé réservé en Kotlin, utilisez un autre nom si possible
+    val value: Int,
     val dest: String
 )
 

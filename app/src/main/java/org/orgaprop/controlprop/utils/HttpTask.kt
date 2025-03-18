@@ -49,6 +49,7 @@ class HttpTask(private val context: Context) {
             val stringUrl = buildUrl(paramsAct, paramsCbl, paramsGet)
 
             Log.d(TAG, "executeHttpTask stringUrl: $retryCount => $stringUrl")
+            Log.d(TAG, "executeHttpTask paramsPost: $retryCount => $paramsPost")
 
             var urlConnection: HttpsURLConnection? = null
             try {

@@ -7,13 +7,13 @@ import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.google.gson.Gson
 
 import org.koin.android.ext.android.inject
 
 import org.orgaprop.controlprop.ui.main.repository.LoginRepository
 import org.orgaprop.controlprop.ui.main.types.LoginData
 import org.orgaprop.controlprop.utils.network.NetworkMonitor
-import org.orgaprop.controlprop.utils.prefs.Prefs
 
 /**
  * Classe mère pour toutes les activités de l'application.
@@ -26,7 +26,7 @@ abstract class BaseActivity : AppCompatActivity() {
     // Données partagées
     protected val dataStore = mutableMapOf<String, Any>()
     protected lateinit var preferences: SharedPreferences
-    protected lateinit var prefs: Prefs
+    //protected lateinit var prefs: Prefs
 
     // Accès à l'instance de LoginRepository via l'application
     protected val loginRepository: LoginRepository by inject()
@@ -56,7 +56,7 @@ abstract class BaseActivity : AppCompatActivity() {
      */
     private fun initializeSharedData() {
         preferences = getSharedPreferences("ControlProp", MODE_PRIVATE)
-        prefs = Prefs(this)
+        //prefs = Prefs(this)
     }
 
     /**
@@ -109,12 +109,16 @@ abstract class BaseActivity : AppCompatActivity() {
     fun setUserData(data: LoginData, pseudo: String, password: String) {
         Log.d(TAG, "setUserData: $data")
 
-        putData("userData", data)
+        val gson = Gson()
+        val userDataJson = gson.toJson(data)
 
-        prefs.setMbr(data.idMbr.toString())
-        prefs.setAdrMac(data.adrMac)
+        Log.d(TAG, "setUserData: userDataJson: $userDataJson")
+
+        //prefs.setMbr(data.idMbr.toString())
+        //prefs.setAdrMac(data.adrMac)
 
         preferences.edit().apply {
+            putString("userData", userDataJson)
             putString("username", pseudo)
             putString("password", password)
             putString("adrMac", data.adrMac)
@@ -130,14 +134,26 @@ abstract class BaseActivity : AppCompatActivity() {
      * @return Les données de l'utilisateur, ou null si elles n'existent pas.
      */
     fun getUserData(): LoginData? {
-        return getData("userData") as? LoginData
+        val userDataJson = preferences.getString("userData", null)
+        if (userDataJson != null) {
+            try {
+                val gson = Gson()
+                return gson.fromJson(userDataJson, LoginData::class.java)
+            } catch (e: Exception) {
+                Log.e(TAG, "Erreur lors de la conversion de userData en LoginData", e)
+            }
+        }
+        return null
     }
 
     /**
      * Efface les données de l'utilisateur lors de la déconnexion.
      */
     fun clearUserData() {
-        //removeData("userData")
+        preferences.edit().apply {
+            remove("userData")
+            apply()
+        }
     }
 
     /**

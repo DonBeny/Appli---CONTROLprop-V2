@@ -18,7 +18,6 @@ class LoginManager(
 
     private val TAG = "LoginManager"
 
-    // Simuler un appel réseau pour la connexion
     suspend fun login(username: String, password: String): JSONObject {
         return try {
             // Récupérer le numéro de version de l'application
@@ -66,11 +65,20 @@ class LoginManager(
                 put("psd", username)
                 put("mdp", password)
                 put("mac", adrMac)
+                put("phoneName", Build.BRAND)
+                put("phoneModel", Build.DEVICE)
+                put("phoneBuild", Build.VERSION.SDK_INT.toString())
                 put("appVersion", appVersion)
             }.toString()
 
             val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_CBL_TEST, "", paramsPost)
+
+            Log.d(TAG, "checkLogin: response : $response")
+
             val jsonObject = JSONObject(response)
+
+            Log.d(TAG, "checkLogin: jsonObject : $jsonObject")
+
             jsonObject
         } catch (e: IOException) {
             throw LoginException(ErrorCodes.NETWORK_ERROR, e)
@@ -81,7 +89,6 @@ class LoginManager(
         }
     }
 
-    // Simuler un appel réseau pour la déconnexion
     suspend fun logout(idMbr: Int, adrMac: String): JSONObject {
         return try {
             // Construire les paramètres pour la requête
@@ -108,7 +115,6 @@ class LoginManager(
         }
     }
 
-    // Simuler un appel réseau pour la vérification de version
     suspend fun checkVersion(idMbr: String, deviceId: String): JSONObject {
         return try {
             // Simuler une réponse JSON du serveur
@@ -124,12 +130,10 @@ class LoginManager(
         }
     }
 
-    // Nettoyer les données de connexion
     fun clearLoginData() {
         // Logique pour effacer les données de connexion
     }
 
-    // Exception personnalisée pour les erreurs de connexion
     class LoginException(
         code: Int,
         cause: Throwable? = null

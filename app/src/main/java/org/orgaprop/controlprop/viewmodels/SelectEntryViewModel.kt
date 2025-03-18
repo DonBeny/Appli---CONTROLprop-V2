@@ -1,6 +1,6 @@
 package org.orgaprop.controlprop.viewmodels
 
-import android.content.Intent
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 import org.orgaprop.controlprop.managers.SelectEntryManager
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.ui.selectlist.SelectListActivity
@@ -15,6 +16,8 @@ import org.orgaprop.controlprop.ui.selectlist.SelectListActivity
 class SelectEntryViewModel(
     private val selectEntryManager: SelectEntryManager
 ) : ViewModel() {
+
+    private val TAG = "SelectEntryViewModel"
 
     private var idMbr: Int = -1
     private var adrMac: String = ""
@@ -59,15 +62,11 @@ class SelectEntryViewModel(
     fun onLogoutButtonClicked() {
         viewModelScope.launch {
             try {
-                // Appeler la méthode de déconnexion dans SelectEntryManager
                 selectEntryManager.logout(idMbr, adrMac)
 
-                // Fermer l'application après une déconnexion réussie
                 _navigateToCloseApp.value = true
             } catch (e: Exception) {
-                // En cas d'erreur, afficher un message d'erreur
                 _errorMessage.value = "Erreur lors de la déconnexion : ${e.message}"
-                // Fermer l'application même en cas d'erreur
                 _navigateToCloseApp.value = true
             }
         }
@@ -75,7 +74,6 @@ class SelectEntryViewModel(
 
     fun onSearchButtonClicked(query: String) {
         if (query.isNotEmpty()) {
-            // Émettez la requête de recherche pour que l'activité puisse gérer la navigation
             viewModelScope.launch {
                 _navigateToSearch.emit(query)
             }
@@ -115,17 +113,40 @@ class SelectEntryViewModel(
 
     // Méthode pour gérer les éléments sélectionnés
     fun handleSelectedItem(item: SelectItem) {
+        Log.d(TAG, "handleSelectedItem: Item ${item.type} selected: ${item.name}")
+
         when (item.type) {
             SelectListActivity.SELECT_LIST_TYPE_AGC -> {
+                Log.d(TAG, "handleSelectedItem: Selected Agence: ${item.name}")
+
                 _selectedAgence.value = item.name
                 _selectedAgenceId.value = item.id
             }
             SelectListActivity.SELECT_LIST_TYPE_GRP -> {
+                Log.d(TAG, "handleSelectedItem: Selected Groupement: ${item.name}")
+
                 _selectedGroupement.value = item.name
                 _selectedGroupementId.value = item.id
             }
             SelectListActivity.SELECT_LIST_TYPE_RSD -> {
-                _selectedResidence.value = item.name
+                Log.d(TAG, "handleSelectedItem: Selected Residence: ${item.name}")
+
+                _selectedResidence.value = item.ref + " -- " + item.name + " -- Entrée " + item.entry
+                _selectedResidenceId.value = item.id
+            }
+            SelectListActivity.SELECT_LIST_TYPE_SEARCH -> {
+                val t = JSONObject(item.comment)
+
+                Log.d(TAG, "handleSelectedItem: Selected Search:")
+                Log.d(TAG, t.toString())
+
+                _selectedAgence.value = t.getJSONObject("agency").getString("txt")
+                _selectedAgenceId.value = t.getJSONObject("agency").getInt("id")
+
+                _selectedGroupement.value = t.getJSONObject("group").getString("txt")
+                _selectedGroupementId.value = t.getJSONObject("group").getInt("id")
+
+                _selectedResidence.value = item.ref + " -- " + item.name + " -- Entrée " + item.entry
                 _selectedResidenceId.value = item.id
             }
         }
@@ -138,6 +159,8 @@ class SelectEntryViewModel(
     fun setUserCredentials(idMbr: Int, adrMac: String) {
         this.idMbr = idMbr
         this.adrMac = adrMac
+
+        Log.d(TAG, "setUserCredentials: idMbr: ${this.idMbr}, adrMac: ${this.adrMac}")
     }
 
 }

@@ -6,16 +6,18 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.Toast
+
 import androidx.lifecycle.Observer
-import org.json.JSONException
-import org.json.JSONObject
+
 import org.koin.androidx.viewmodel.ext.android.viewModel
+
 import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.databinding.ActivityMainBinding
+
 import org.orgaprop.controlprop.ui.BaseActivity
-import org.orgaprop.controlprop.ui.HomeActivity
 import org.orgaprop.controlprop.ui.getmail.GetMailActivity
 import org.orgaprop.controlprop.ui.main.types.LoginData
+import org.orgaprop.controlprop.ui.selectentry.SelectEntryActivity
 import org.orgaprop.controlprop.viewmodels.MainViewModel
 
 
@@ -36,19 +38,16 @@ class MainActivity : BaseActivity() {
         Log.d(TAG, "onCreate: Setup components")
         setupComponents()
 
-        loadSavedCredentials()
+        Log.d(TAG, "onCreate: Check user logged in")
+        checkUserLoggedIn()
     }
 
-    // Implémentation des méthodes abstraites de BaseActivity
     override fun initializeComponents() {
-        // Initialisation des composants de l'activité
-        // Par exemple, initialiser les vues ou les variables
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
     }
 
     override fun setupComponents() {
-        // Configuration des composants de l'activité
         viewModel.loginState.observe(this, Observer { state ->
             when (state) {
                 is MainViewModel.LoginState.Loading -> showWait(true)
@@ -60,15 +59,19 @@ class MainActivity : BaseActivity() {
         viewModel.logoutState.observe(this, Observer { state ->
             when (state) {
                 is MainViewModel.LogoutState.Loading -> showWait(true)
-                is MainViewModel.LogoutState.Success -> finishAffinity()
+                is MainViewModel.LogoutState.Success -> {
+                    clearLoginData()
+                    finishAffinity()
+                }
                 is MainViewModel.LogoutState.Error -> {
                     showError(state.message)
+                    clearUserData()
                     finishAffinity()
                 }
             }
         })
 
-        binding.mainActivityRgpdTxt?.setOnClickListener {
+        binding.mainActivityRgpdTxt.setOnClickListener {
             openWebPage()
         }
         binding.mainActivityMailBtn.setOnClickListener {
@@ -98,6 +101,23 @@ class MainActivity : BaseActivity() {
         }
     }
 
+    private fun checkUserLoggedIn() {
+        val userData = getUserData()
+
+        if (userData != null) {
+            Log.d(TAG, "checkUserLoggedIn: L'utilisateur est déjà connecté")
+            binding.mainActivityConnectLyt.visibility = View.GONE
+            binding.mainActivityDecoLyt.visibility = View.VISIBLE
+        } else {
+            Log.d(TAG, "checkUserLoggedIn: L'utilisateur n'est pas connecté")
+            binding.mainActivityConnectLyt.visibility = View.VISIBLE
+            binding.mainActivityDecoLyt.visibility = View.GONE
+
+            Log.d(TAG, "checkUserLoggedIn: Load saved credentials")
+            loadSavedCredentials()
+        }
+    }
+
     private fun startAppli(data: LoginData) {
         // Logique pour démarrer l'application après une connexion réussie
         Toast.makeText(this, "Connexion réussie", Toast.LENGTH_SHORT).show()
@@ -107,9 +127,10 @@ class MainActivity : BaseActivity() {
 
         // Enregistrer les données dans BaseActivity
         setUserData(data, username, password)
+        showWait(false)
 
         // naviguer vers une autre activité
-        val intent = Intent(this, HomeActivity::class.java) // TODO
+        val intent = Intent(this, SelectEntryActivity::class.java)
         startActivity(intent)
         finish()
     }
@@ -121,6 +142,9 @@ class MainActivity : BaseActivity() {
         // Effacer les champs de saisie
         binding.mainActivityUsernameTxt.text.clear()
         binding.mainActivityPasswordTxt.text.clear()
+
+        showWait(false)
+
         Toast.makeText(this, "Déconnexion réussie", Toast.LENGTH_SHORT).show()
     }
 
@@ -134,13 +158,12 @@ class MainActivity : BaseActivity() {
     }
 
     private fun showError(message: String) {
-        // Afficher un message d'erreur
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+        if( message != "" )
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+
+        showWait(false)
     }
 
-    /**
-     * Charge les identifiants enregistrés et les affiche dans les champs de saisie.
-     */
     private fun loadSavedCredentials() {
         val username = getUsername()
         val password = getPassword()
@@ -159,21 +182,6 @@ class MainActivity : BaseActivity() {
         val url = "https://www.orgaprop.org/ress/protectDonneesPersonnelles.html"
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
         startActivity(intent)
-    }
-
-    private fun enableLoginButton() {
-        // Activer le bouton de connexion
-        binding.mainActivityConnectBtn.isEnabled = true
-    }
-
-    private fun handleVersionSuccess(response: JSONObject) {
-        // Logique pour gérer la réponse de vérification de version
-        try {
-            val version = response.getInt("version")
-            Toast.makeText(this, "Version vérifiée: $version", Toast.LENGTH_SHORT).show()
-        } catch (e: JSONException) {
-            showError("Erreur lors du traitement de la réponse de version")
-        }
     }
 
 }

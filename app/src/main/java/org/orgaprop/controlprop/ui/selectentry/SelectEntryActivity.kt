@@ -2,18 +2,20 @@ package org.orgaprop.controlprop.ui.selectentry
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.activity.viewModels
+import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import org.json.JSONObject
 import org.orgaprop.controlprop.databinding.ActivitySelectEntryBinding
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.ui.BaseActivity
+import org.orgaprop.controlprop.ui.main.MainActivity
 import org.orgaprop.controlprop.ui.selectlist.SelectListActivity
+import org.orgaprop.controlprop.utils.extentions.getParcelableCompat
 import org.orgaprop.controlprop.viewmodels.SelectEntryViewModel
 
 class SelectEntryActivity : BaseActivity() {
@@ -21,12 +23,19 @@ class SelectEntryActivity : BaseActivity() {
     private val TAG = "SelectEntryActivity"
 
     private lateinit var binding: ActivitySelectEntryBinding
-    private val viewModel: SelectEntryViewModel by viewModels()
+    private val viewModel: SelectEntryViewModel by viewModel()
 
     private val selectionLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        Log.d(TAG, "selectionLauncher: Result code: ${result.resultCode}")
+
         if (result.resultCode == RESULT_OK) {
+            Log.d(TAG, "selectionLauncher: Result data: ${result.data}")
+
             val data = result.data
-            val selectedItem = data?.getSerializableExtra(SelectListActivity.SELECT_LIST_LIST) as? SelectItem
+            val selectedItem = data?.extras?.getParcelableCompat<SelectItem>(SelectListActivity.SELECT_LIST_RETURN)
+
+            Log.d(TAG, "selectionLauncher: Selected item: $selectedItem")
+
             selectedItem?.let {
                 viewModel.handleSelectedItem(it)
             }
@@ -50,15 +59,27 @@ class SelectEntryActivity : BaseActivity() {
         binding = ActivitySelectEntryBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val userData = getData("userData") as? JSONObject
-        val idMbr = userData?.optInt("idMbr", -1) ?: -1
-        val adrMac = userData?.optString("adrMac", "") ?: ""
+        val userData = getUserData()
+
+        if( userData == null ) {
+            Log.d(TAG, "initializeComponents: UserData is null")
+            navigateToMainActivity()
+            return
+        } else {
+            Log.d(TAG, "initializeComponents: UserData is not null")
+        }
+
+        val idMbr = userData.idMbr// (userData as JSONObject).optInt("idMbr", -1)
+        val adrMac = userData.adrMac// (userData as JSONObject).optString("adrMac", "")
+
+        Log.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
 
         viewModel.setUserCredentials(idMbr, adrMac)
 
-        // Désactiver la case à cocher "Contrat" si userData.hasContrat est false
-        val hasContrat = userData?.optBoolean("hasContrat", true) ?: true
+        val hasContrat = userData.hasContrat// (userData as JSONObject).optBoolean("hasContrat", true) ?: true
         binding.selectEntryContraChk.isEnabled = hasContrat
+
+        Log.d(TAG, "initializeComponents: hasContrat: $hasContrat")
 
         // Si hasContrat est false, décocher la case par défaut
         if (!hasContrat) {
@@ -74,20 +95,17 @@ class SelectEntryActivity : BaseActivity() {
         observeViewModel()
     }
 
-    override fun onBackPressed() {
-        super.onBackPressed()
-        navigateToMainActivity()
-    }
-
 
     private fun setupListeners() {
         // Bouton Précédent
         binding.selectEntryPrevBtn.setOnClickListener {
+            Log.d(TAG, "setupListeners: PrevBtn pressed")
             navigateToMainActivity()
         }
 
         // Bouton Déconnexion
         binding.selectEntryDecoBtn.setOnClickListener {
+            Log.d(TAG, "setupListeners: DecoBtn pressed")
             viewModel.onLogoutButtonClicked()
         }
 
@@ -148,11 +166,9 @@ class SelectEntryActivity : BaseActivity() {
         viewModel.selectedAgence.observe(this, Observer { agence ->
             binding.selectEntryAgcSpinner.text = agence
         })
-
         viewModel.selectedGroupement.observe(this, Observer { groupement ->
             binding.selectEntryGrpSpinner.text = groupement
         })
-
         viewModel.selectedResidence.observe(this, Observer { residence ->
             binding.selectEntryRsdSpinner.text = residence
 
@@ -163,7 +179,6 @@ class SelectEntryActivity : BaseActivity() {
         viewModel.isProximityChecked.observe(this, Observer { isChecked ->
             binding.selectEntryProxiChk.isChecked = isChecked
         })
-
         viewModel.isContractChecked.observe(this, Observer { isChecked ->
             binding.selectEntryContraChk.isChecked = isChecked
         })
@@ -171,6 +186,7 @@ class SelectEntryActivity : BaseActivity() {
         // Observer pour fermer l'application
         viewModel.navigateToCloseApp.observe(this, Observer { shouldClose ->
             if (shouldClose) {
+                clearUserData()
                 finishAffinity() // Fermer l'application
             }
         })
@@ -192,6 +208,7 @@ class SelectEntryActivity : BaseActivity() {
         }
     }
 
+
     private fun openSelectionList(type: String) {
         when (type) {
             SelectListActivity.SELECT_LIST_TYPE_GRP, SelectListActivity.SELECT_LIST_TYPE_RSD -> {
@@ -203,12 +220,10 @@ class SelectEntryActivity : BaseActivity() {
                 }
 
                 if (parentId == null) {
-                    // Afficher un message d'erreur si parentId n'est pas valide
                     viewModel.setErrorMessage("Veuillez d'abord sélectionner une agence (pour GRP) ou un groupement (pour RSD)")
                     return
                 }
 
-                // Lancer SelectListActivity avec le type et le parentId
                 val intent = Intent(this, SelectListActivity::class.java).apply {
                     putExtra(SelectListActivity.SELECT_LIST_TYPE, type)
                     putExtra(SelectListActivity.SELECT_LIST_ID, parentId)
@@ -216,7 +231,6 @@ class SelectEntryActivity : BaseActivity() {
                 selectionLauncher.launch(intent)
             }
             else -> {
-                // Pour les autres types (AGC, SEARCH), pas besoin de parentId
                 val intent = Intent(this, SelectListActivity::class.java).apply {
                     putExtra(SelectListActivity.SELECT_LIST_TYPE, type)
                 }
@@ -226,11 +240,15 @@ class SelectEntryActivity : BaseActivity() {
     }
 
     private fun navigateToMainActivity() {
+        Log.d(TAG, "navigateToMainActivity: Navigating to MainActivity")
+        val intent = Intent(this, MainActivity::class.java)
+        startActivity(intent)
         finish()
     }
 
     private val onBackPressedCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
+            Log.d(TAG, "handleOnBackPressed: Back Pressed")
             navigateToMainActivity()
         }
     }

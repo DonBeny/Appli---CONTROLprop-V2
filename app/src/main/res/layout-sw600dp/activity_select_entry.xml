@@ -3,14 +3,11 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".ui.selectentry.SelectEntryActivity"
-
+    android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-
     android:orientation="vertical"
-
-    android:background="@drawable/new_image_fond_tablette">
+    tools:context=".ui.selectentry.SelectEntryActivity">
 
     <RelativeLayout android:id="@+id/select_entry_title_lyt"
         android:layout_width="match_parent"

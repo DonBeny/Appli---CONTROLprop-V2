@@ -68,7 +68,6 @@ class LoginRepository(private val loginManager: LoginManager) {
                 loginCallback?.onLoginSuccess(response) // Notifier le succès
                 response
             } catch (e: BaseException) {
-                // Relancer l'exception si elle est déjà une BaseException
                 throw e
             } catch (e: Exception) {
                 loginCallback?.onLoginFailure(e.message ?: "Login failed") // Notifier l'échec

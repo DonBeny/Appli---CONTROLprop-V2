@@ -80,7 +80,7 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
             _logoutState.value = LogoutState.Loading
             try {
                 val responseJson = loginRepository.logout(idMbr, adrMac)
-                val response = parseLoginResponse(responseJson)
+                val response = parseLogoutResponse(responseJson)
 
                 if (response.status) {
                     _logoutState.value = LogoutState.Success
@@ -113,16 +113,16 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
 
     private fun parseLoginResponse(responseJson: JSONObject): LoginResponse {
         return try {
-            Log.d(TAG, "parseLoginResponse: $responseJson")
+            Log.d(TAG, "parseLoginResponse: Réponse JSON: $responseJson")
 
             val status = responseJson.getBoolean("status")
 
-            Log.d(TAG, "parseLoginResponse: $status")
+            Log.d(TAG, "parseLoginResponse: Status: $status")
 
             if (status) {
                 val data = responseJson.getJSONObject("data")
 
-                Log.d(TAG, "parseLoginResponse: $data")
+                Log.d(TAG, "parseLoginResponse: Data: $data")
 
                 LoginResponse(
                     status = true,
@@ -140,7 +140,7 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
             } else {
                 val error = responseJson.getJSONObject("error")
 
-                Log.d(TAG, "parseLoginResponse: $error")
+                Log.d(TAG, "parseLoginResponse: error: $error")
 
                 LoginResponse(
                     status = false,
@@ -148,6 +148,34 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
                         code = error.getInt("code"),
                         txt = error.getString("txt")
                     )
+                )
+            }
+        } catch (e: JSONException) {
+            throw BaseException(ErrorCodes.INVALID_RESPONSE, "Réponse JSON invalide", e)
+        }
+    }
+
+    private fun parseLogoutResponse(responseJson: JSONObject): LoginResponse {
+        return try {
+            Log.d(TAG, "parseLogoutResponse: Réponse JSON: $responseJson")
+
+            val status = responseJson.getBoolean("status")
+
+            Log.d(TAG, "parseLogoutResponse: Status: $status")
+
+            if (status) {
+                LoginResponse(status = true)
+            } else {
+                val error = responseJson.getJSONObject("error")
+
+                Log.d(TAG, "parseLogoutResponse: error: $error")
+
+                LoginResponse(
+                    status = false,
+                    error = LoginError(
+                        code = error.getInt("code"),
+                        txt = error.getString("txt")
+                        )
                 )
             }
         } catch (e: JSONException) {
@@ -193,7 +221,6 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
         )
     }
 
-    // Fonction pour vérifier la version de l'application
     fun checkVersion(idMbr: String, deviceId: String) {
         viewModelScope.launch {
             _versionState.value = VersionState.Loading
@@ -206,7 +233,6 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
         }
     }
 
-    // Fonction pour valider les entrées en temps réel
     fun validateInputs(username: String, password: String) {
         try {
             // Validation des entrées
@@ -219,17 +245,14 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
         }
     }
 
-    // Fonction pour gérer les changements de thème
     fun updateTheme(isDarkMode: Boolean) {
         _uiState.value = UiState.ThemeChanged(isDarkMode)
     }
 
-    // Fonction pour gérer les changements de layout
     fun updateLayout(newLayout: Int, oldLayout: Int) {
         _uiState.value = UiState.LayoutChanged(newLayout, oldLayout)
     }
 
-    // Fonction pour nettoyer les données de connexion
     fun clearLoginData() {
         loginRepository.clearLoginData()
     }

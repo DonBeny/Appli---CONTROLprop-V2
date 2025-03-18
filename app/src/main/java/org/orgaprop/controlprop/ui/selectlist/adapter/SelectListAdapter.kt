@@ -1,9 +1,12 @@
 package org.orgaprop.controlprop.ui.selectlist.adapter
 
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.databinding.AgenceItemBinding
 import org.orgaprop.controlprop.databinding.ResidItemBinding
 import org.orgaprop.controlprop.models.SelectItem
@@ -108,6 +111,21 @@ class SelectListAdapter(
             binding.itemResidAdr.text = adrText
             binding.itemResidCity.text = item.city
             binding.itemResidLast.text = item.last
+
+            val borderColor = if (item.delay) {
+                itemView.context.getColor(R.color.text_secondary_light) // Couleur grise
+            } else {
+                itemView.context.getColor(R.color._light_green) // Couleur verte
+            }
+
+            val shape = GradientDrawable()
+            shape.shape = GradientDrawable.RECTANGLE
+            shape.cornerRadius = 8f
+            shape.setStroke(8, borderColor)
+            shape.setColor(Color.TRANSPARENT)
+
+            binding.root.background = shape
+
             binding.root.setOnClickListener { listener.onItemClick(item) }
         }
     }

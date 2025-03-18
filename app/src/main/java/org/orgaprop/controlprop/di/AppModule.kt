@@ -18,49 +18,8 @@ import org.orgaprop.controlprop.viewmodels.GetMailViewModel
 import org.orgaprop.controlprop.viewmodels.SelectEntryViewModel
 import org.orgaprop.controlprop.viewmodels.SelectListViewModel
 
-val appModule = module {
+val viewModelModule = module {
 
-    single {
-        Log.e("AppModule", "Creating HttpTask...")
-        HttpTask(get())
-    }
-
-    single {
-        Log.e("AppModule", "Creating LoginManager...")
-        LoginManager(get(), get())
-    }
-
-    // Définir LoginRepository comme un singleton
-    single {
-        Log.e("AppModule", "Creating LoginRepository...")
-        LoginRepository(get())
-    }
-
-    // Démarrer la surveillance du réseau au démarrage de l'application
-    single {
-        Log.e("AppModule", "Starting network monitoring...")
-        val context = get<Context>()
-        NetworkMonitor.startMonitoring(context)
-        NetworkMonitor
-    }
-
-    single {
-        Log.e("AppModule", "Creating GetMailManager...")
-        GetMailManager(get(), get())
-    }
-
-    single {
-        Log.e("AppModule", "Creating SelectListManager...")
-        SelectEntryManager(get(), get())
-    }
-    // Déclarer SelectListManager comme un singleton
-    single {
-        Log.e("AppModule", "Creating SelectListManager...")
-        SelectListManager(get(), get())
-    }
-
-
-    // Définir MainViewModel comme une dépendance injectable
     viewModel {
         Log.e("AppModule", "Creating MainViewModel...")
         MainViewModel(get(), get())
@@ -76,10 +35,52 @@ val appModule = module {
         SelectEntryViewModel(get())
     }
 
-    // Déclarer SelectListViewModel comme une dépendance injectable
     viewModel {
         Log.e("AppModule", "Creating SelectListViewModel...")
         SelectListViewModel(get())
     }
 
 }
+
+val managerModule = module {
+
+    single {
+        Log.e("AppModule", "Creating HttpTask...")
+        HttpTask(get())
+    }
+
+    single {
+        Log.e("AppModule", "Creating LoginManager...")
+        LoginManager(get(), get())
+    }
+
+    single {
+        Log.e("AppModule", "Creating LoginRepository...")
+        LoginRepository(get())
+    }
+
+    single {
+        Log.e("AppModule", "Starting network monitoring...")
+        val context = get<Context>()
+        NetworkMonitor.startMonitoring(context)
+        NetworkMonitor
+    }
+
+    single {
+        Log.e("AppModule", "Creating GetMailManager...")
+        GetMailManager(get(), get())
+    }
+
+    single {
+        Log.e("AppModule", "Creating SelectEntryManager...")
+        SelectEntryManager(get(), get())
+    }
+
+    single {
+        Log.e("AppModule", "Creating SelectListManager...")
+        SelectListManager(get(), get())
+    }
+
+}
+
+val appModule = listOf(viewModelModule, managerModule)

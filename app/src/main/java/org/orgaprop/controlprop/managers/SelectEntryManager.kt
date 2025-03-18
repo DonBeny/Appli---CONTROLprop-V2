@@ -17,23 +17,21 @@ class SelectEntryManager(
 
     private val TAG = "SelectListManager"
 
-    // Simuler un appel réseau pour la déconnexion
     suspend fun logout(idMbr: Int, adrMac: String): JSONObject {
         return try {
-            // Construire les paramètres pour la requête
             val paramsPost = JSONObject().apply {
                 put("mbr", idMbr)
                 put("mac", adrMac)
             }.toString()
 
-            // Exécuter la requête HTTP
             val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_CBL_LOGOUT, "", paramsPost)
+
+            Log.d(TAG, "logout: response = $response")
+
             val jsonObject = JSONObject(response)
 
-            Log.d(TAG, "logout: $jsonObject")
+            Log.d(TAG, "logout: jsonObject = $jsonObject")
 
-            // Convertir la réponse en JSONObject
-            //JSONObject(response)
             jsonObject
         } catch (e: IOException) {
             throw SelectEntryException(ErrorCodes.NETWORK_ERROR, e)
@@ -44,7 +42,6 @@ class SelectEntryManager(
         }
     }
 
-    // Exception personnalisée pour les erreurs de connexion
     class SelectEntryException(
         code: Int,
         cause: Throwable? = null
