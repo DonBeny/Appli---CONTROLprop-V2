@@ -4,15 +4,20 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
-import org.koin.androidx.viewmodel.ext.android.viewModel
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
+
 import kotlinx.coroutines.launch
+
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
 import org.orgaprop.controlprop.databinding.ActivitySelectEntryBinding
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.ui.BaseActivity
+import org.orgaprop.controlprop.ui.config.TypeCtrlActivity
 import org.orgaprop.controlprop.ui.main.MainActivity
 import org.orgaprop.controlprop.ui.selectlist.SelectListActivity
 import org.orgaprop.controlprop.utils.extentions.getParcelableCompat
@@ -42,9 +47,7 @@ class SelectEntryActivity : BaseActivity() {
         }
     }
 
-    companion object {
-        private const val SELECT_LIST_REQUEST_CODE = 1001
-    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +57,8 @@ class SelectEntryActivity : BaseActivity() {
         initializeComponents()
         setupComponents()
     }
+
+
 
     override fun initializeComponents() {
         binding = ActivitySelectEntryBinding.inflate(layoutInflater)
@@ -89,14 +94,11 @@ class SelectEntryActivity : BaseActivity() {
         val selectedResidence = viewModel.selectedResidence.value
         binding.selectEntryNextBtn.isEnabled = !selectedResidence.isNullOrEmpty()
     }
-
     override fun setupComponents() {
         setupListeners()
-        observeViewModel()
+        setupObservers()
     }
-
-
-    private fun setupListeners() {
+    override fun setupListeners() {
         // Bouton Précédent
         binding.selectEntryPrevBtn.setOnClickListener {
             Log.d(TAG, "setupListeners: PrevBtn pressed")
@@ -123,26 +125,17 @@ class SelectEntryActivity : BaseActivity() {
         }
 
         // Bloc Agence
-        binding.selectEntryAgcBlk.setOnClickListener {
-            openSelectionList(SelectListActivity.SELECT_LIST_TYPE_AGC)
-        }
-        binding.selectEntryAgcSpinner.setOnClickListener {
+        binding.selectEntryAgcLyt.setOnClickListener {
             openSelectionList(SelectListActivity.SELECT_LIST_TYPE_AGC)
         }
 
         // Bloc Groupement
-        binding.selectEntryGrpBlk.setOnClickListener {
-            openSelectionList(SelectListActivity.SELECT_LIST_TYPE_GRP)
-        }
-        binding.selectEntryGrpSpinner.setOnClickListener {
+        binding.selectEntryGrpLyt.setOnClickListener {
             openSelectionList(SelectListActivity.SELECT_LIST_TYPE_GRP)
         }
 
         // Bloc Résidence
-        binding.selectEntryRsdBlk.setOnClickListener {
-            openSelectionList(SelectListActivity.SELECT_LIST_TYPE_RSD)
-        }
-        binding.selectEntryRsdSpinner.setOnClickListener {
+        binding.selectEntryRsdLyt.setOnClickListener {
             openSelectionList(SelectListActivity.SELECT_LIST_TYPE_RSD)
         }
 
@@ -157,11 +150,10 @@ class SelectEntryActivity : BaseActivity() {
 
         // Bouton Suivant
         binding.selectEntryNextBtn.setOnClickListener {
-            viewModel.onNextButtonClicked()
+            navigateToNextScreen()
         }
     }
-
-    private fun observeViewModel() {
+    override fun setupObservers() {
         // Observers pour les sélections (Agence, Groupement, Résidence)
         viewModel.selectedAgence.observe(this, Observer { agence ->
             binding.selectEntryAgcSpinner.text = agence
@@ -209,6 +201,7 @@ class SelectEntryActivity : BaseActivity() {
     }
 
 
+
     private fun openSelectionList(type: String) {
         when (type) {
             SelectListActivity.SELECT_LIST_TYPE_GRP, SelectListActivity.SELECT_LIST_TYPE_RSD -> {
@@ -227,24 +220,57 @@ class SelectEntryActivity : BaseActivity() {
                 val intent = Intent(this, SelectListActivity::class.java).apply {
                     putExtra(SelectListActivity.SELECT_LIST_TYPE, type)
                     putExtra(SelectListActivity.SELECT_LIST_ID, parentId)
+                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
                 selectionLauncher.launch(intent)
             }
             else -> {
                 val intent = Intent(this, SelectListActivity::class.java).apply {
                     putExtra(SelectListActivity.SELECT_LIST_TYPE, type)
+                    flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
                 selectionLauncher.launch(intent)
             }
         }
     }
-
     private fun navigateToMainActivity() {
         Log.d(TAG, "navigateToMainActivity: Navigating to MainActivity")
-        val intent = Intent(this, MainActivity::class.java)
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
         startActivity(intent)
         finish()
     }
+    private fun navigateToNextScreen() {
+        Log.d(TAG, "navigateToNextScreen: Navigating to Next Screen")
+
+        val selectedEntry = getEntrySelected()
+        val entryList = getEntryList()
+        val proxi = viewModel.isProximityChecked.value ?: false
+        val contract = viewModel.isContractChecked.value ?: false
+        val b = proxi || contract
+
+        if (selectedEntry != null && entryList != null && b) {
+            setProxi(proxi)
+            setContract(contract)
+
+            val intent = Intent(this, TypeCtrlActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+
+            startActivity(intent)
+        } else {
+            Log.e(TAG, "navigateToNextScreen: Données manquantes (selectedEntry ou entryList ou Chekbox)")
+
+            if( !b ) {
+                Toast.makeText(this, "Veuillez sélectionner au moins une option (Proximité ou Contrat)", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(this, "Veuillez sélectionner une entrée", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
 
     private val onBackPressedCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {

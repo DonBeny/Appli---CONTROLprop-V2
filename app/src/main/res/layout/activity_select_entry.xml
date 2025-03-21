@@ -103,167 +103,193 @@
 
             android:orientation="vertical">
 
-            <FrameLayout android:id="@+id/select_entry_agc_blk"
+            <LinearLayout android:id="@+id/select_entry_agc_lyt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+
+                android:orientation="vertical"
 
                 android:layout_marginTop="10dp"
                 android:layout_marginHorizontal="10dp">
 
-                <RelativeLayout
+                <FrameLayout android:id="@+id/select_entry_agc_blk"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="wrap_content">
 
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="35dp"
-                        android:layout_height="35dp"
-
-                        android:layout_marginStart="25dp"
-
-                        android:contentDescription="@string/lbl_agc"
-                        android:src="@drawable/agence_vert"/>
-
-                    <TextView
+                    <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
 
-                        android:gravity="center"
+                        android:orientation="horizontal">
 
-                        android:textColor="@color/main_ctrl_prop"
-                        android:textSize="20sp"
-                        android:text="@string/lbl_agc"/>
+                        <ImageView
+                            android:layout_width="35dp"
+                            android:layout_height="35dp"
 
-                </RelativeLayout>
+                            android:layout_marginStart="25dp"
 
-                <pl.droidsonroids.gif.GifImageView android:id="@+id/select_entry_wait_agc_img"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
+                            android:contentDescription="@string/lbl_agc"
+                            android:src="@drawable/agence_vert"/>
 
-                    android:layout_marginTop="10dp"
-                    android:layout_gravity="end"
-                    android:layout_marginEnd="20dp"
-                    android:elevation="10dp"
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
 
-                    android:src="@drawable/load"
-                    android:visibility="invisible"/>
+                            android:gravity="center"
 
-            </FrameLayout>
+                            android:textColor="@color/main_ctrl_prop"
+                            android:textSize="20sp"
+                            android:text="@string/lbl_agc"/>
 
-            <TextView android:id="@+id/select_entry_agc_spinner"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
+                    </RelativeLayout>
 
-                android:layout_marginStart="80dp"/>
+                    <pl.droidsonroids.gif.GifImageView android:id="@+id/select_entry_wait_agc_img"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
 
-            <FrameLayout android:id="@+id/select_entry_grp_blk"
+                        android:layout_marginTop="10dp"
+                        android:layout_gravity="end"
+                        android:layout_marginEnd="20dp"
+                        android:elevation="10dp"
+
+                        android:src="@drawable/load"
+                        android:visibility="invisible"/>
+
+                </FrameLayout>
+
+                <TextView android:id="@+id/select_entry_agc_spinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+
+                    android:layout_marginStart="80dp"/>
+
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/select_entry_grp_lyt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+
+                android:orientation="vertical"
 
                 android:layout_marginTop="20dp"
                 android:layout_marginHorizontal="10dp">
 
-                <RelativeLayout
+                <FrameLayout android:id="@+id/select_entry_grp_blk"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="wrap_content">
 
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="35dp"
-                        android:layout_height="35dp"
-
-                        android:layout_marginStart="25dp"
-
-                        android:contentDescription="@string/lbl_grp"
-                        android:src="@drawable/groupement_residences_vert"/>
-
-                    <TextView
+                    <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
 
-                        android:gravity="center"
+                        android:orientation="horizontal">
 
-                        android:textColor="@color/main_ctrl_prop"
-                        android:textSize="20sp"
-                        android:text="@string/lbl_grp"/>
+                        <ImageView
+                            android:layout_width="35dp"
+                            android:layout_height="35dp"
 
-                </RelativeLayout>
+                            android:layout_marginStart="25dp"
 
-                <pl.droidsonroids.gif.GifImageView android:id="@+id/select_entry_wait_grp_img"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
+                            android:contentDescription="@string/lbl_grp"
+                            android:src="@drawable/groupement_residences_vert"/>
 
-                    android:layout_marginTop="10dp"
-                    android:layout_gravity="end"
-                    android:layout_marginEnd="20dp"
-                    android:elevation="10dp"
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
 
-                    android:src="@drawable/load"
-                    android:visibility="invisible" />
+                            android:gravity="center"
 
-            </FrameLayout>
+                            android:textColor="@color/main_ctrl_prop"
+                            android:textSize="20sp"
+                            android:text="@string/lbl_grp"/>
 
-            <TextView android:id="@+id/select_entry_grp_spinner"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
+                    </RelativeLayout>
 
-                android:layout_marginStart="80dp"/>
+                    <pl.droidsonroids.gif.GifImageView android:id="@+id/select_entry_wait_grp_img"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
 
-            <FrameLayout android:id="@+id/select_entry_rsd_blk"
+                        android:layout_marginTop="10dp"
+                        android:layout_gravity="end"
+                        android:layout_marginEnd="20dp"
+                        android:elevation="10dp"
+
+                        android:src="@drawable/load"
+                        android:visibility="invisible" />
+
+                </FrameLayout>
+
+                <TextView android:id="@+id/select_entry_grp_spinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+
+                    android:layout_marginStart="80dp"/>
+
+            </LinearLayout>
+
+            <LinearLayout android:id="@+id/select_entry_rsd_lyt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+
+                android:orientation="vertical"
 
                 android:layout_marginTop="20dp"
                 android:layout_marginHorizontal="10dp">
 
-                <RelativeLayout
+                <FrameLayout android:id="@+id/select_entry_rsd_blk"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="wrap_content">
 
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="35dp"
-                        android:layout_height="35dp"
-
-                        android:layout_marginStart="25dp"
-
-                        android:contentDescription="@string/lbl_rsd"
-                        android:src="@drawable/residence_vert"/>
-
-                    <TextView
+                    <RelativeLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
 
-                        android:gravity="center"
+                        android:orientation="horizontal">
 
-                        android:textColor="@color/main_ctrl_prop"
-                        android:textSize="20sp"
-                        android:text="@string/lbl_rsd"/>
+                        <ImageView
+                            android:layout_width="35dp"
+                            android:layout_height="35dp"
 
-                </RelativeLayout>
+                            android:layout_marginStart="25dp"
 
-                <pl.droidsonroids.gif.GifImageView android:id="@+id/select_entry_wait_rsd_img"
-                    android:layout_width="30dp"
-                    android:layout_height="30dp"
+                            android:contentDescription="@string/lbl_rsd"
+                            android:src="@drawable/residence_vert"/>
 
-                    android:layout_marginTop="10dp"
-                    android:layout_gravity="end"
-                    android:layout_marginEnd="20dp"
-                    android:elevation="10dp"
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
 
-                    android:src="@drawable/load"
-                    android:visibility="invisible" />
+                            android:gravity="center"
 
-            </FrameLayout>
+                            android:textColor="@color/main_ctrl_prop"
+                            android:textSize="20sp"
+                            android:text="@string/lbl_rsd"/>
 
-            <TextView android:id="@+id/select_entry_rsd_spinner"
-                android:layout_width="match_parent"
-                android:layout_height="40dp"
+                    </RelativeLayout>
 
-                android:layout_marginStart="80dp"/>
+                    <pl.droidsonroids.gif.GifImageView android:id="@+id/select_entry_wait_rsd_img"
+                        android:layout_width="30dp"
+                        android:layout_height="30dp"
+
+                        android:layout_marginTop="10dp"
+                        android:layout_gravity="end"
+                        android:layout_marginEnd="20dp"
+                        android:elevation="10dp"
+
+                        android:src="@drawable/load"
+                        android:visibility="invisible" />
+
+                </FrameLayout>
+
+                <TextView android:id="@+id/select_entry_rsd_spinner"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+
+                    android:layout_marginStart="80dp"/>
+
+            </LinearLayout>
+
+
 
         </LinearLayout>
 

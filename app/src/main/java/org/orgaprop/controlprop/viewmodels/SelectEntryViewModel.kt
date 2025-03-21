@@ -21,6 +21,7 @@ class SelectEntryViewModel(
 
     private var idMbr: Int = -1
     private var adrMac: String = ""
+    //private var entrySelected: SelectItem? = null
 
     // LiveData pour les sélections
     private val _selectedAgence = MutableLiveData<String>()
@@ -41,7 +42,6 @@ class SelectEntryViewModel(
     private val _selectedResidenceId = MutableLiveData<Int?>()
     val selectedResidenceId: LiveData<Int?> get() = _selectedResidenceId
 
-    // LiveData pour les cases à cocher
     private val _isProximityChecked = MutableLiveData<Boolean>(true)
     val isProximityChecked: LiveData<Boolean> get() = _isProximityChecked
 
@@ -51,11 +51,12 @@ class SelectEntryViewModel(
     private val _navigateToSearch = MutableSharedFlow<String>()
     val navigateToSearch: SharedFlow<String> get() = _navigateToSearch
 
-    // LiveData pour fermer l'application
+    //private val _navigateToNextScreen = MutableLiveData<Boolean>()
+    //val navigateToNextScreen: LiveData<Boolean> get() = _navigateToNextScreen
+
     private val _navigateToCloseApp = MutableLiveData<Boolean>()
     val navigateToCloseApp: LiveData<Boolean> get() = _navigateToCloseApp
 
-    // LiveData pour les erreurs
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage: LiveData<String> get() = _errorMessage
 
@@ -100,18 +101,11 @@ class SelectEntryViewModel(
         } else if (!isProximityChecked && !isContractChecked) {
             _errorMessage.value = "Veuillez cocher au moins une option (Proximité ou Contrat)"
         } else {
-            // Toutes les conditions sont remplies, passer à l'écran suivant
-            navigateToNextScreen()
+            //TODO : Enregistrer l'entrée sélectionnée et la dernière liste des entrées reçues
+            //_navigateToNextScreen.value = true
         }
     }
 
-    private fun navigateToNextScreen() {
-        // TODO: Implémenter la navigation vers l'écran suivant
-        // Par exemple, lancer une nouvelle activité ou un fragment
-        _errorMessage.value = "Navigation vers l'écran suivant"
-    }
-
-    // Méthode pour gérer les éléments sélectionnés
     fun handleSelectedItem(item: SelectItem) {
         Log.d(TAG, "handleSelectedItem: Item ${item.type} selected: ${item.name}")
 
@@ -133,6 +127,8 @@ class SelectEntryViewModel(
 
                 _selectedResidence.value = item.ref + " -- " + item.name + " -- Entrée " + item.entry
                 _selectedResidenceId.value = item.id
+
+                //entrySelected = item
             }
             SelectListActivity.SELECT_LIST_TYPE_SEARCH -> {
                 val t = JSONObject(item.comment)
@@ -148,6 +144,8 @@ class SelectEntryViewModel(
 
                 _selectedResidence.value = item.ref + " -- " + item.name + " -- Entrée " + item.entry
                 _selectedResidenceId.value = item.id
+
+                //entrySelected = item
             }
         }
     }

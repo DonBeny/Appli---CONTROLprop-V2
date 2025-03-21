@@ -28,6 +28,8 @@ class MainActivity : BaseActivity() {
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModel()
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "onCreate: Activité créée")
         super.onCreate(savedInstanceState)
@@ -42,16 +44,21 @@ class MainActivity : BaseActivity() {
         checkUserLoggedIn()
     }
 
+
+
     override fun initializeComponents() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
     }
-
     override fun setupComponents() {
+        setupObservers()
+        setupListeners()
+    }
+    override fun setupObservers() {
         viewModel.loginState.observe(this, Observer { state ->
             when (state) {
                 is MainViewModel.LoginState.Loading -> showWait(true)
-                is MainViewModel.LoginState.Success -> startAppli(state.data)
+                is MainViewModel.LoginState.Success -> launchSelectEntryActivity(state.data)
                 is MainViewModel.LoginState.LoggedOut -> clearLoginData()
                 is MainViewModel.LoginState.Error -> showError(state.message)
             }
@@ -70,7 +77,8 @@ class MainActivity : BaseActivity() {
                 }
             }
         })
-
+    }
+    override fun setupListeners() {
         binding.mainActivityRgpdTxt.setOnClickListener {
             openWebPage()
         }
@@ -101,6 +109,50 @@ class MainActivity : BaseActivity() {
         }
     }
 
+
+
+    private fun launchSelectEntryActivity(data: LoginData) {
+        Toast.makeText(this, "Connexion réussie", Toast.LENGTH_SHORT).show()
+
+        val username = binding.mainActivityUsernameTxt.text.toString()
+        val password = binding.mainActivityPasswordTxt.text.toString()
+
+        setUserData(data, username, password)
+        showWait(false)
+
+        val intent = Intent(this, SelectEntryActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        startActivity(intent)
+        finish()
+    }
+
+
+
+    private fun clearLoginData() {
+        clearUserData()
+
+        binding.mainActivityUsernameTxt.text.clear()
+        binding.mainActivityPasswordTxt.text.clear()
+
+        showWait(false)
+
+        Toast.makeText(this, "Déconnexion réussie", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun loadSavedCredentials() {
+        val username = getUsername()
+        val password = getPassword()
+        val adrMac = getAdrMac()
+
+        Log.d(TAG, "loadSavedCredentials: Username: $username, Password: $password")
+
+        if (username != null && password != null && adrMac != null) {
+            binding.mainActivityUsernameTxt.setText(username)
+            binding.mainActivityPasswordTxt.setText(password)
+            viewModel.checkLogin(username, password, adrMac)
+        }
+    }
     private fun checkUserLoggedIn() {
         val userData = getUserData()
 
@@ -118,45 +170,15 @@ class MainActivity : BaseActivity() {
         }
     }
 
-    private fun startAppli(data: LoginData) {
-        // Logique pour démarrer l'application après une connexion réussie
-        Toast.makeText(this, "Connexion réussie", Toast.LENGTH_SHORT).show()
 
-        val username = binding.mainActivityUsernameTxt.text.toString()
-        val password = binding.mainActivityPasswordTxt.text.toString()
-
-        // Enregistrer les données dans BaseActivity
-        setUserData(data, username, password)
-        showWait(false)
-
-        // naviguer vers une autre activité
-        val intent = Intent(this, SelectEntryActivity::class.java)
-        startActivity(intent)
-        finish()
-    }
-
-    private fun clearLoginData() {
-        // Effacer les données de connexion
-        clearUserData()
-
-        // Effacer les champs de saisie
-        binding.mainActivityUsernameTxt.text.clear()
-        binding.mainActivityPasswordTxt.text.clear()
-
-        showWait(false)
-
-        Toast.makeText(this, "Déconnexion réussie", Toast.LENGTH_SHORT).show()
-    }
 
     private fun showWait(show: Boolean) {
-        // Afficher ou masquer l'indicateur de chargement
         if (show) {
             binding.mainActivityWaitImg.visibility = View.VISIBLE
         } else {
             binding.mainActivityWaitImg.visibility = View.GONE
         }
     }
-
     private fun showError(message: String) {
         if( message != "" )
             Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
@@ -164,19 +186,6 @@ class MainActivity : BaseActivity() {
         showWait(false)
     }
 
-    private fun loadSavedCredentials() {
-        val username = getUsername()
-        val password = getPassword()
-        val adrMac = getAdrMac()
-
-        Log.d(TAG, "loadSavedCredentials: Username: $username, Password: $password")
-
-        if (username != null && password != null && adrMac != null) {
-            binding.mainActivityUsernameTxt.setText(username)
-            binding.mainActivityPasswordTxt.setText(password)
-            viewModel.checkLogin(username, password, adrMac)
-        }
-    }
 
     private fun openWebPage() {
         val url = "https://www.orgaprop.org/ress/protectDonneesPersonnelles.html"

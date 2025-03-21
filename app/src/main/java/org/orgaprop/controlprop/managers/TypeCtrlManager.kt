@@ -2,54 +2,49 @@ package org.orgaprop.controlprop.managers
 
 import android.content.Context
 import android.util.Log
-
 import org.json.JSONException
 import org.json.JSONObject
-
-import java.io.IOException
-
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
-import org.orgaprop.controlprop.ui.selectlist.SelectListActivity
 import org.orgaprop.controlprop.utils.HttpTask
 import org.orgaprop.controlprop.utils.network.HttpTaskConstantes
+import java.io.IOException
 
-class SelectListManager(
+class TypeCtrlManager(
     private val context: Context,
     private val httpTask: HttpTask
 ) {
 
-    private val TAG = "SelectListManager"
+    val TAG = "TypeCtrlManager"
 
-    suspend fun fetchData(type: String, parentId: Int, searchQuery: String, idMbr: Int, adrMac: String): JSONObject {
-        val getString = "val=$parentId"
-        var postString = "mbr=$idMbr&mac=$adrMac"
-
-        if (type == SelectListActivity.SELECT_LIST_TYPE_SEARCH) {
-            postString += "&search=$searchQuery"
-        }
-
+    suspend fun fetchPlanAction(rsdId: Int, idMbr: Int, adrMac: String): JSONObject {
         return try {
-            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_LIST, type, getString, postString)
+            val paramGet = "mod=" + HttpTaskConstantes.HTTP_TASK_MOD_GET
+            val paramsPost = JSONObject().apply {
+                put("mbr", idMbr)
+                put("mac", adrMac)
+                put("rsd", rsdId)
+            }.toString()
 
-            //Log.d(TAG, "fetchData response : $response")
+            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_PROP, HttpTaskConstantes.HTTP_TASK_CBL_PLAN_ACTIONS, paramGet, paramsPost)
+
+            Log.d(TAG, "fetchPlanAction: response = $response")
 
             val jsonObject = JSONObject(response)
 
-            //Log.d(TAG, "fetchData jsonObject : $jsonObject")
+            Log.d(TAG, "fetchPlanAction: jsonObject = $jsonObject")
 
             jsonObject
         } catch (e: IOException) {
-            throw SelectListException(ErrorCodes.NETWORK_ERROR, e)
+            throw TypeCtrlException(ErrorCodes.NETWORK_ERROR, e)
         } catch (e: JSONException) {
-            throw SelectListException(ErrorCodes.INVALID_RESPONSE, e)
+            throw TypeCtrlException(ErrorCodes.INVALID_RESPONSE, e)
         } catch (e: Exception) {
-            throw SelectListException(ErrorCodes.UNKNOWN_ERROR, e)
+            throw TypeCtrlException(ErrorCodes.UNKNOWN_ERROR, e)
         }
     }
 
-    // Exception personnalisée pour les erreurs de connexion
-    class SelectListException(
+    class TypeCtrlException(
         code: Int,
         cause: Throwable? = null
     ) : BaseException(code, getMessageForCode(code), cause) {
@@ -65,9 +60,6 @@ class SelectListManager(
                 return when (code) {
                     ErrorCodes.NETWORK_ERROR -> "Erreur réseau lors de la connexion"
                     ErrorCodes.INVALID_RESPONSE -> "Réponse serveur invalide"
-                    ErrorCodes.LOGIN_FAILED -> "Échec de la connexion"
-                    ErrorCodes.LOGOUT_FAILED -> "Échec de la déconnexion"
-                    ErrorCodes.VERSION_CHECK_FAILED -> "Échec de la vérification de version"
                     else -> "Une erreur inconnue s'est produite"
                 }
             }

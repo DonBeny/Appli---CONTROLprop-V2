@@ -22,7 +22,7 @@ class GetMailViewModel(private val getMailManager: GetMailManager, private val n
                 val result = getMailManager.submitEmail(email)
 
                 if (result.has("status") && result.getBoolean("status")) {
-                    _response.value = "Votre avaez été déconnecté et vos identifiants vous ont été envoyés"
+                    _response.value = "Votre avez été déconnecté et vos identifiants vous ont été envoyés"
                 } else {
                     _response.value = result.getString("message")
                     _error.value = result.getString("error")

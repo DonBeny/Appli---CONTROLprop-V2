@@ -3,21 +3,24 @@ package org.orgaprop.controlprop.ui.selectlist
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 
+import androidx.activity.OnBackPressedCallback
 import androidx.recyclerview.widget.LinearLayoutManager
 
-import org.json.JSONObject
+import java.io.Serializable
+
+import kotlin.properties.Delegates
 
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 import org.orgaprop.controlprop.databinding.ActivitySelectListBinding
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.ui.BaseActivity
+import org.orgaprop.controlprop.ui.main.MainActivity
 import org.orgaprop.controlprop.ui.main.types.LoginData
 import org.orgaprop.controlprop.ui.selectlist.adapter.SelectListAdapter
 import org.orgaprop.controlprop.viewmodels.SelectListViewModel
-import java.io.Serializable
-import kotlin.properties.Delegates
 
 class SelectListActivity : BaseActivity(), SelectListAdapter.OnItemClickListener {
 
@@ -48,14 +51,20 @@ class SelectListActivity : BaseActivity(), SelectListAdapter.OnItemClickListener
     private var idMbr: Int = 0
     private lateinit var adrMac: String
 
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
 
         initializeComponents()
         setupComponents()
 
-        observeViewModel()
+        viewModel.fetchData(type, parentId, searchQuery)
     }
+
+
 
     override fun initializeComponents() {
         binding = ActivitySelectListBinding.inflate(layoutInflater)
@@ -69,27 +78,53 @@ class SelectListActivity : BaseActivity(), SelectListAdapter.OnItemClickListener
 
         if( userData == null ) {
             Log.d(TAG, "initializeComponents: UserData is null")
-            finish()
+            navigateToMainActivity()
             return
+        } else {
+            Log.d(TAG, "initializeComponents: UserData is not null")
         }
 
-        idMbr = userData!!.idMbr// (userData as JSONObject).getInt("id")
-        adrMac = userData!!.adrMac// (userData as JSONObject).getString("adrMac")
+        idMbr = userData!!.idMbr
+        adrMac = userData!!.adrMac
 
         viewModel.setUserData(userData!!)
     }
-
     override fun setupComponents() {
         adapter = SelectListAdapter(emptyList(), type ?: "", this)
 
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
 
-        viewModel.fetchData(type, parentId, "")
+        setupObservers()
     }
+    override fun setupListeners() {}
+    override fun setupObservers() {
+        viewModel.items.observe(this) { items ->
+            adapter.updateItems(items)
+        }
+
+        viewModel.listAgents.observe(this) { listAgents ->
+            setListAgents(listAgents)
+        }
+        viewModel.listPrestataires.observe(this) { listPrestates ->
+            setListPrestates(listPrestates)
+        }
+
+        viewModel.errorMessage.observe(this) { errorMessage ->
+            showToast(errorMessage)
+            returnToSelectEntryActivity()
+        }
+    }
+
+
 
     override fun onItemClick(item: SelectItem) {
         Log.d(TAG, "onItemClick: $item")
+
+        if( type == SELECT_LIST_TYPE_RSD ) {
+            setEntrySelected(item)
+            setEntryList(adapter.getCurrentList())
+        }
 
         val resultIntent = Intent().apply {
             putExtra(SELECT_LIST_TYPE, type)
@@ -109,14 +144,33 @@ class SelectListActivity : BaseActivity(), SelectListAdapter.OnItemClickListener
         finish()
     }
 
-    private fun observeViewModel() {
-        viewModel.items.observe(this) { items ->
-            adapter.updateItems(items)
-        }
 
-        viewModel.errorMessage.observe(this) { errorMessage ->
-            // TODO: Gérer les erreurs
-            // Afficher un message d'erreur à l'utilisateur (Toast, Snackbar, etc.)
+
+    private fun navigateToMainActivity() {
+        Log.d(TAG, "Navigating to MainActivity")
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        startActivity(intent)
+        finish()
+    }
+    private fun returnToSelectEntryActivity() {
+        Log.d(TAG, "Navigating to SelectEntryActivity")
+
+        setResult(RESULT_CANCELED)
+        finish()
+    }
+
+
+
+    private fun showToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
+        override fun handleOnBackPressed() {
+            Log.d(TAG, "handleOnBackPressed: Back Pressed")
+            returnToSelectEntryActivity()
         }
     }
 

@@ -39,7 +39,7 @@ class LoginManager(
             // Exécuter la requête HTTP
             val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_CBL_LOGIN, "", paramsPost)
 
-            Log.d(TAG, "login response : $response")
+            //Log.d(TAG, "login response : $response")
 
             val jsonObject = JSONObject(response)
 
@@ -73,7 +73,7 @@ class LoginManager(
 
             val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_CBL_TEST, "", paramsPost)
 
-            Log.d(TAG, "checkLogin: response : $response")
+            //Log.d(TAG, "checkLogin: response : $response")
 
             val jsonObject = JSONObject(response)
 
@@ -101,7 +101,7 @@ class LoginManager(
             val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_CBL_LOGOUT, "", paramsPost)
             val jsonObject = JSONObject(response)
 
-            Log.d(TAG, "logout: $jsonObject")
+            //Log.d(TAG, "logout: $jsonObject")
 
             // Convertir la réponse en JSONObject
             //JSONObject(response)

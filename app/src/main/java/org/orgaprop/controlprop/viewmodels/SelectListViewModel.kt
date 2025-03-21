@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import org.orgaprop.controlprop.exceptions.BaseException
@@ -26,6 +27,12 @@ class SelectListViewModel(
     private val _items = MutableLiveData<List<SelectItem>>()
     val items: LiveData<List<SelectItem>> get() = _items
 
+    private val _listAgents = MutableLiveData<JSONArray>()
+    val listAgents: LiveData<JSONArray> get() = _listAgents
+
+    private val _listPrestataires = MutableLiveData<JSONArray>()
+    val listPrestataires: LiveData<JSONArray> get() = _listPrestataires
+
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage: LiveData<String> get() = _errorMessage
 
@@ -35,14 +42,14 @@ class SelectListViewModel(
         viewModelScope.launch {
             try {
                 val items = when (type) {
-                    SelectListActivity.SELECT_LIST_TYPE_AGC -> fetchAgencesFromUserData()
+                    SelectListActivity.SELECT_LIST_TYPE_AGC -> fetchAgenciesFromUserData()
                     else -> {
                         val jsonResponse = selectListManager.fetchData(
                             type,
                             parentId,
                             searchQuery,
-                            userData.idMbr,
-                            userData.adrMac
+                            idMbr,
+                            adrMac
                         )
                         parseJsonResponse(jsonResponse, type)
                     }
@@ -58,7 +65,7 @@ class SelectListViewModel(
         }
     }
 
-    private fun fetchAgencesFromUserData(): List<SelectItem> {
+    private fun fetchAgenciesFromUserData(): List<SelectItem> {
         return userData.let {
             val agencesArray = it.agences
             val agences = mutableListOf<SelectItem>()
@@ -84,7 +91,7 @@ class SelectListViewModel(
         Log.d(TAG, "parseJsonResponse: type=$type")
 
         if (jsonResponse.getBoolean("status")) {
-            val dataArray = jsonResponse.getJSONArray("data")
+            val dataArray = jsonResponse.getJSONObject("data").getJSONArray("grps")
 
             for (i in 0 until dataArray.length()) {
                 val jsonItem = dataArray.getJSONObject(i)
@@ -121,8 +128,14 @@ class SelectListViewModel(
             }
 
             Log.d(TAG, "parseJsonResponse: items=$items")
+
+            val dataAgents = jsonResponse.getJSONObject("data").getJSONArray("agts")
+            var dataPrestates = jsonResponse.getJSONObject("data").getJSONArray("prestas")
+
+            _listAgents.value = dataAgents
+            _listPrestataires.value = dataPrestates
         } else {
-            throw JSONException("Données non valides")
+            _errorMessage.value = jsonResponse.getJSONObject("error").getString("txt")
         }
 
         return items
@@ -130,6 +143,8 @@ class SelectListViewModel(
 
     fun setUserData(userData: LoginData) {
         this.userData = userData
+        idMbr = userData.idMbr
+        adrMac = userData.adrMac
     }
 
 }
