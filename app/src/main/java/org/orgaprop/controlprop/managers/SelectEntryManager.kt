@@ -24,7 +24,7 @@ class SelectEntryManager(
                 put("mac", adrMac)
             }.toString()
 
-            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_CBL_LOGOUT, "", paramsPost)
+            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION_CBL_LOGOUT, "", paramsPost)
 
             Log.d(TAG, "logout: response = $response")
 

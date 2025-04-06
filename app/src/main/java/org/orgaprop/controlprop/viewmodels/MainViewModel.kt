@@ -22,6 +22,9 @@ import org.orgaprop.controlprop.ui.main.types.LoginData
 import org.orgaprop.controlprop.ui.main.types.LoginError
 import org.orgaprop.controlprop.ui.main.types.LoginResponse
 import org.orgaprop.controlprop.ui.main.types.Rapport
+import org.orgaprop.controlprop.ui.main.types.StructureCriter
+import org.orgaprop.controlprop.ui.main.types.StructureElement
+import org.orgaprop.controlprop.ui.main.types.StructureZone
 import org.orgaprop.controlprop.utils.network.NetworkMonitor
 
 class MainViewModel(private val loginRepository: LoginRepository, private val networkMonitor: NetworkMonitor) : ViewModel() {
@@ -111,6 +114,8 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
         }
     }
 
+
+
     private fun parseLoginResponse(responseJson: JSONObject): LoginResponse {
         return try {
             Log.d(TAG, "parseLoginResponse: Réponse JSON: $responseJson")
@@ -131,10 +136,12 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
                         version = data.getInt("version"),
                         idMbr = data.getInt("idMbr"),
                         adrMac = data.getString("adrMac"),
+                        mail = data.getString("mail"),
                         hasContrat = data.getBoolean("hasContrat"),
                         info = parseInfoConf(data.getJSONObject("info")),
                         limits = parseLimits(data.getJSONObject("limits")),
-                        planActions = data.getString("planActions")
+                        planActions = data.getString("planActions"),
+                        structure = parseStructure(data.getJSONObject("structure"))
                     )
                 )
             } else {
@@ -154,7 +161,6 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
             throw BaseException(ErrorCodes.INVALID_RESPONSE, "Réponse JSON invalide", e)
         }
     }
-
     private fun parseLogoutResponse(responseJson: JSONObject): LoginResponse {
         return try {
             Log.d(TAG, "parseLogoutResponse: Réponse JSON: $responseJson")
@@ -221,17 +227,71 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
         )
     }
 
-    fun checkVersion(idMbr: String, deviceId: String) {
-        viewModelScope.launch {
-            _versionState.value = VersionState.Loading
-            try {
-                val response = loginRepository.checkVersion(idMbr, deviceId)
-                _versionState.value = VersionState.Success(response)
-            } catch (e: BaseException) {
-                _versionState.value = VersionState.Error(e.message ?: "Version check failed")
-            }
+    private fun parseStructure(structureObject: JSONObject): Map<String, StructureZone> {
+        val grilleMap = mutableMapOf<String, StructureZone>()
+
+        val keys = structureObject.keys()
+        while (keys.hasNext()) {
+            val sectionId = keys.next()
+            val sectionJson = structureObject.getJSONObject(sectionId)
+
+            Log.d(TAG, "parseStructure: sectionId: $sectionId")
+            Log.d(TAG, "parseStructure: sectionJson: $sectionJson")
+
+            val name = sectionJson.getString("name")
+            val coef = sectionJson.getInt("coef")
+
+            val elmtsJson = sectionJson.getJSONObject("elmts")
+            val elmtsMap = parseStructureElements(elmtsJson)
+
+            grilleMap[sectionId] = StructureZone(coef, name, elmtsMap)
         }
+
+        return grilleMap
     }
+    private fun parseStructureElements(elmtsJson: JSONObject): Map<String, StructureElement> {
+        val elmtsMap = mutableMapOf<String, StructureElement>()
+
+        val keys = elmtsJson.keys()
+        while (keys.hasNext()) {
+            val elementId = keys.next()
+            val elementJson = elmtsJson.getJSONObject(elementId)
+
+            Log.d(TAG, "parseStructureElements: elementId: $elementId")
+            Log.d(TAG, "parseStructureElements: elementJson: $elementJson")
+
+            val name = elementJson.getString("name")
+            val coef = elementJson.getInt("coef")
+
+            val critrsJson = elementJson.getJSONObject("critrs")
+            val critrsMap = parseCriters(critrsJson)
+
+            elmtsMap[elementId] = StructureElement(coef, name, critrsMap)
+        }
+
+        return elmtsMap
+    }
+    private fun parseCriters(critrsJson: JSONObject): Map<String, StructureCriter> {
+        val critrsMap = mutableMapOf<String, StructureCriter>()
+
+        val keys = critrsJson.keys()
+        while (keys.hasNext()) {
+            val critreId = keys.next()
+            val critreJson = critrsJson.getJSONObject(critreId)
+
+            Log.d(TAG, "parseCriters: critreId: $critreId")
+            Log.d(TAG, "parseCriters: critreJson: $critreJson")
+
+            val name = critreJson.getString("name")
+            val coef = critreJson.getInt("coef")
+
+            critrsMap[critreId] = StructureCriter(coef, name)
+        }
+
+        return critrsMap
+    }
+
+
 
     fun validateInputs(username: String, password: String) {
         try {
@@ -259,16 +319,16 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
 
     // États de connexion
     sealed class LoginState {
-        object Loading : LoginState()
+        data object Loading : LoginState()
         data class Success(val data: LoginData) : LoginState()
-        object LoggedOut : LoginState()
+        data object LoggedOut : LoginState()
         data class Error(val message: String) : LoginState()
     }
 
     // États de déconnexion
     sealed class LogoutState {
-        object Loading : LogoutState()
-        object Success : LogoutState()
+        data object Loading : LogoutState()
+        data object Success : LogoutState()
         data class Error(val message: String) : LogoutState()
     }
 
@@ -287,7 +347,7 @@ class MainViewModel(private val loginRepository: LoginRepository, private val ne
 
     // États de version
     sealed class VersionState {
-        object Loading : VersionState()
+        data object Loading : VersionState()
         data class Success(val response: JSONObject) : VersionState()
         data class Error(val message: String) : VersionState()
     }

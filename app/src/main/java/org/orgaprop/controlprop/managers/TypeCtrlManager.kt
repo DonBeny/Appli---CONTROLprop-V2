@@ -19,14 +19,14 @@ class TypeCtrlManager(
 
     suspend fun fetchPlanAction(rsdId: Int, idMbr: Int, adrMac: String): JSONObject {
         return try {
-            val paramGet = "mod=" + HttpTaskConstantes.HTTP_TASK_MOD_GET
+            val paramGet = "mod=" + HttpTaskConstantes.HTTP_TASK_ACT_PROP_MOD_GET
             val paramsPost = JSONObject().apply {
                 put("mbr", idMbr)
                 put("mac", adrMac)
                 put("rsd", rsdId)
             }.toString()
 
-            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_PROP, HttpTaskConstantes.HTTP_TASK_CBL_PLAN_ACTIONS, paramGet, paramsPost)
+            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_PROP, HttpTaskConstantes.HTTP_TASK_ACT_PROP_CBL_PLAN_ACTIONS, paramGet, paramsPost)
 
             Log.d(TAG, "fetchPlanAction: response = $response")
 

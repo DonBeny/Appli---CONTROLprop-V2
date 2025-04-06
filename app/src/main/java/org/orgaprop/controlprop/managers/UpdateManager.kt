@@ -137,7 +137,7 @@ class UpdateManager(private val activity: AppCompatActivity) {
         }
     }
 
-    private fun handleResumeUpdate(appUpdateInfo: AppUpdateInfo) {
+    private fun handleResumeUpdate(appUpdateInfo: AppUpdateInfo?) {
         if (appUpdateInfo == null) {
             isUpdateInProgress = false
             return
@@ -145,13 +145,13 @@ class UpdateManager(private val activity: AppCompatActivity) {
 
         when (appUpdateInfo.installStatus()) {
             InstallStatus.DOWNLOADED -> appUpdateManager.completeUpdate()
-            InstallStatus.FAILED, InstallStatus.CANCELED -> {
-                isUpdateInProgress = false
-                updateCompleteCallback?.accept(false)
-            }
             InstallStatus.INSTALLED -> {
                 isUpdateInProgress = false
                 updateCompleteCallback?.accept(true)
+            }
+            else -> {
+                isUpdateInProgress = false
+                updateCompleteCallback?.accept(false)
             }
         }
     }

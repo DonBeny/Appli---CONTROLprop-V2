@@ -9,11 +9,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import org.json.JSONArray
 import org.json.JSONObject
 
 import org.koin.android.ext.android.inject
 import org.orgaprop.controlprop.models.SelectItem
+import org.orgaprop.controlprop.sync.SyncUtils
 
 import org.orgaprop.controlprop.ui.main.repository.LoginRepository
 import org.orgaprop.controlprop.ui.main.types.LoginData
@@ -37,11 +37,12 @@ abstract class BaseActivity : AppCompatActivity() {
         return ViewModelProvider(this)[T::class.java]
     }
 
-
-
     companion object {
+        const val PREF_SAVED_ID_NAME = "ControlProp"
+
         const val PREF_SAVED_USER = "userData"
         const val PREF_SAVED_ENTRY_SELECTED = "entrySelected"
+        const val PREF_SAVED_PENDING_CONTROLS = "pendingControls"
         const val PREF_SAVED_PROXI = "proxi"
         const val PREF_SAVED_CONTRACT = "contract"
         const val PREF_SAVED_ENTRY_LIST = "entryList"
@@ -80,8 +81,11 @@ abstract class BaseActivity : AppCompatActivity() {
      * Initialise les données partagées et les préférences.
      */
     private fun initializeSharedData() {
-        preferences = getSharedPreferences("ControlProp", MODE_PRIVATE)
-        //prefs = Prefs(this)
+        preferences = getSharedPreferences(PREF_SAVED_ID_NAME, MODE_PRIVATE)
+
+        val jsonTest = preferences.getString(PREF_SAVED_PENDING_CONTROLS, null)
+
+        Log.d(TAG, "initializeSharedData: jsonTest: $jsonTest")
     }
 
     /**
@@ -112,9 +116,6 @@ abstract class BaseActivity : AppCompatActivity() {
         val userDataJson = gson.toJson(data)
 
         Log.d(TAG, "setUserData: userDataJson: $userDataJson")
-
-        //prefs.setMbr(data.idMbr.toString())
-        //prefs.setAdrMac(data.adrMac)
 
         preferences.edit().apply {
             putString(PREF_SAVED_USER, userDataJson)
@@ -166,26 +167,76 @@ abstract class BaseActivity : AppCompatActivity() {
 
 
     fun setEntrySelected(entry: SelectItem) {
-        Log.d(TAG, "setEntrySelected: $entry")
+        try {
+            Log.d(TAG, "setEntrySelected: $entry")
 
-        preferences.edit().apply {
-            putString(PREF_SAVED_ENTRY_SELECTED, Gson().toJson(entry))
-            apply()
+            preferences.edit().apply {
+                putString(PREF_SAVED_ENTRY_SELECTED, Gson().toJson(entry))
+                apply()
+            }
+
+            Log.d(TAG, "setEntrySelected: Données enregistrées => "+preferences.getString(PREF_SAVED_ENTRY_SELECTED, "null"))
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving entry selected", e)
         }
 
-        Log.d(TAG, "setEntrySelected: Données enregistrées => "+preferences.getString(PREF_SAVED_ENTRY_SELECTED, "null"))
     }
     fun getEntrySelected(): SelectItem? {
-        val entrySelectedJson = preferences.getString(PREF_SAVED_ENTRY_SELECTED, null)
-
-        if (entrySelectedJson != null) {
-            try {
-                return Gson().fromJson(entrySelectedJson, SelectItem::class.java)
-            } catch (e: Exception) {
-                Log.e(TAG, "Erreur lors de la conversion de entrySelected en SelectItem", e)
+        return try {
+            val entrySelectedJson = preferences.getString(PREF_SAVED_ENTRY_SELECTED, null)
+            entrySelectedJson?.let { json ->
+                Gson().fromJson(json, SelectItem::class.java).also {
+                    Log.d(TAG, "Entry loaded successfully")
+                }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading entry selected", e)
+            null
         }
-        return null
+    }
+
+    fun addPendingControl(entry: SelectItem) {
+        try {
+            val currentControls = getPendingControls().toMutableList()
+            // Vérifier si le contrôle existe déjà
+            val existingIndex = currentControls.indexOfFirst { it.id == entry.id }
+            if (existingIndex >= 0) {
+                currentControls[existingIndex] = entry
+            } else {
+                currentControls.add(entry)
+            }
+
+            preferences.edit().apply {
+                putString(PREF_SAVED_PENDING_CONTROLS, Gson().toJson(currentControls))
+                apply()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error saving pending control", e)
+        }
+    }
+    fun getPendingControls(): List<SelectItem> {
+        return try {
+            val json = preferences.getString(PREF_SAVED_PENDING_CONTROLS, null)
+            if (json != null) {
+                val type = object : TypeToken<List<SelectItem>>() {}.type
+                Gson().fromJson(json, type) ?: emptyList()
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading pending controls", e)
+            emptyList()
+        }
+    }
+    fun clearPendingControl(entryId: Int) {
+        val updatedControls = getPendingControls().filter { it.id != entryId }
+        preferences.edit().apply {
+            putString(PREF_SAVED_PENDING_CONTROLS, Gson().toJson(updatedControls))
+            apply()
+        }
+    }
+    fun triggerSync(immediate: Boolean = false) {
+        SyncUtils.scheduleSync(this, immediate)
     }
 
     fun setProxi(proxi: Boolean) {
@@ -272,18 +323,18 @@ abstract class BaseActivity : AppCompatActivity() {
 
 
 
-    fun setListAgents(listAgents: JSONArray) {
+    fun setListAgents(listAgents: JSONObject) {
         preferences.edit().apply {
             putString(PREF_SAVED_LIST_AGENTS, listAgents.toString())
             apply()
         }
     }
-    fun getListAgents(): JSONArray? {
+    fun getListAgents(): JSONObject? {
         val listAgentsJson = preferences.getString(PREF_SAVED_LIST_AGENTS, null)
 
         if (listAgentsJson != null) {
             try {
-                return JSONArray(listAgentsJson)
+                return JSONObject(listAgentsJson)
             } catch (e: Exception) {
                 Log.e(TAG, "Erreur lors de la conversion de listAgents en JSONArray", e)
                 return null
@@ -292,18 +343,18 @@ abstract class BaseActivity : AppCompatActivity() {
         return null
     }
 
-    fun setListPrestates(listPrestates: JSONArray) {
+    fun setListPrestates(listPrestates: JSONObject) {
         preferences.edit().apply {
             putString(PREF_SAVED_LIST_PRESTATES, listPrestates.toString())
             apply()
         }
     }
-    fun getListPrestates(): JSONArray? {
+    fun getListPrestates(): JSONObject? {
         val listPrestatesJson = preferences.getString(PREF_SAVED_LIST_PRESTATES, null)
 
         if (listPrestatesJson != null) {
             try {
-                return JSONArray(listPrestatesJson)
+                return JSONObject(listPrestatesJson)
             } catch (e: Exception) {
                 Log.e(TAG, "Erreur lors de la conversion de listPrestataires en JSONArray", e)
                 return null

@@ -37,16 +37,14 @@ class LoginManager(
             Log.d(TAG, "login paramsPost : $paramsPost")
 
             // Exécuter la requête HTTP
-            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_CBL_LOGIN, "", paramsPost)
+            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION_CBL_LOGIN, "", paramsPost)
 
-            //Log.d(TAG, "login response : $response")
+            Log.d(TAG, "login response : $response")
 
             val jsonObject = JSONObject(response)
 
             Log.d(TAG, "login jsonObject : $jsonObject")
 
-            // Convertir la réponse en JSONObject
-            //JSONObject(response)
             jsonObject
         } catch (e: IOException) {
             throw LoginException(ErrorCodes.NETWORK_ERROR, e)
@@ -71,9 +69,9 @@ class LoginManager(
                 put("appVersion", appVersion)
             }.toString()
 
-            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_CBL_TEST, "", paramsPost)
+            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION_CBL_TEST, "", paramsPost)
 
-            //Log.d(TAG, "checkLogin: response : $response")
+            Log.d(TAG, "checkLogin: response : $response")
 
             val jsonObject = JSONObject(response)
 
@@ -91,36 +89,17 @@ class LoginManager(
 
     suspend fun logout(idMbr: Int, adrMac: String): JSONObject {
         return try {
-            // Construire les paramètres pour la requête
             val paramsPost = JSONObject().apply {
                 put("mbr", idMbr)
                 put("mac", adrMac)
             }.toString()
 
-            // Exécuter la requête HTTP
-            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_CBL_LOGOUT, "", paramsPost)
+            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION_CBL_LOGOUT, "", paramsPost)
             val jsonObject = JSONObject(response)
 
-            //Log.d(TAG, "logout: $jsonObject")
+            Log.d(TAG, "logout: $jsonObject")
 
-            // Convertir la réponse en JSONObject
-            //JSONObject(response)
             jsonObject
-        } catch (e: IOException) {
-            throw LoginException(ErrorCodes.NETWORK_ERROR, e)
-        } catch (e: JSONException) {
-            throw LoginException(ErrorCodes.INVALID_RESPONSE, e)
-        } catch (e: Exception) {
-            throw LoginException(ErrorCodes.UNKNOWN_ERROR, e)
-        }
-    }
-
-    suspend fun checkVersion(idMbr: String, deviceId: String): JSONObject {
-        return try {
-            // Simuler une réponse JSON du serveur
-            JSONObject().apply {
-                put("version", 1)
-            }
         } catch (e: IOException) {
             throw LoginException(ErrorCodes.NETWORK_ERROR, e)
         } catch (e: JSONException) {

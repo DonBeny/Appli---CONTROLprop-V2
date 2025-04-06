@@ -11,7 +11,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.orgaprop.controlprop.managers.SelectEntryManager
 import org.orgaprop.controlprop.models.SelectItem
-import org.orgaprop.controlprop.ui.selectlist.SelectListActivity
+import org.orgaprop.controlprop.ui.selectList.SelectListActivity
 
 class SelectEntryViewModel(
     private val selectEntryManager: SelectEntryManager
@@ -42,10 +42,10 @@ class SelectEntryViewModel(
     private val _selectedResidenceId = MutableLiveData<Int?>()
     val selectedResidenceId: LiveData<Int?> get() = _selectedResidenceId
 
-    private val _isProximityChecked = MutableLiveData<Boolean>(true)
+    private val _isProximityChecked = MutableLiveData(true)
     val isProximityChecked: LiveData<Boolean> get() = _isProximityChecked
 
-    private val _isContractChecked = MutableLiveData<Boolean>(true)
+    private val _isContractChecked = MutableLiveData(true)
     val isContractChecked: LiveData<Boolean> get() = _isContractChecked
 
     private val _navigateToSearch = MutableSharedFlow<String>()
@@ -128,7 +128,16 @@ class SelectEntryViewModel(
                 _selectedResidence.value = item.ref + " -- " + item.name + " -- Entrée " + item.entry
                 _selectedResidenceId.value = item.id
 
-                //entrySelected = item
+                // Accéder aux données prop
+                item.prop?.let { prop ->
+                    Log.d(TAG, "Proxi zones: ${prop.zones.proxi}")
+                    Log.d(TAG, "Contra zones: ${prop.zones.contra}")
+                    Log.d(TAG, "Ctrl note: ${prop.ctrl.note}")
+
+                    // Convertir la chaîne JSON en JSONArray
+                    val grille = prop.ctrl.getGrilleAsJsonArray()
+                    Log.d(TAG, "Grille: $grille")
+                }
             }
             SelectListActivity.SELECT_LIST_TYPE_SEARCH -> {
                 val t = JSONObject(item.comment)
@@ -145,7 +154,16 @@ class SelectEntryViewModel(
                 _selectedResidence.value = item.ref + " -- " + item.name + " -- Entrée " + item.entry
                 _selectedResidenceId.value = item.id
 
-                //entrySelected = item
+                // Accéder aux données prop
+                item.prop?.let { prop ->
+                    Log.d(TAG, "Proxi zones: ${prop.zones.proxi}")
+                    Log.d(TAG, "Contra zones: ${prop.zones.contra}")
+                    Log.d(TAG, "Ctrl note: ${prop.ctrl.note}")
+
+                    // Convertir la chaîne JSON en JSONArray
+                    val grille = prop.ctrl.getGrilleAsJsonArray()
+                    Log.d(TAG, "Grille: $grille")
+                }
             }
         }
     }

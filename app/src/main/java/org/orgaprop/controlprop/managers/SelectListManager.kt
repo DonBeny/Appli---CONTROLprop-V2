@@ -10,7 +10,7 @@ import java.io.IOException
 
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
-import org.orgaprop.controlprop.ui.selectlist.SelectListActivity
+import org.orgaprop.controlprop.ui.selectList.SelectListActivity
 import org.orgaprop.controlprop.utils.HttpTask
 import org.orgaprop.controlprop.utils.network.HttpTaskConstantes
 
@@ -32,11 +32,11 @@ class SelectListManager(
         return try {
             val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_LIST, type, getString, postString)
 
-            //Log.d(TAG, "fetchData response : $response")
+            Log.d(TAG, "fetchData response : $response")
 
             val jsonObject = JSONObject(response)
 
-            //Log.d(TAG, "fetchData jsonObject : $jsonObject")
+            Log.d(TAG, "fetchData jsonObject : $jsonObject")
 
             jsonObject
         } catch (e: IOException) {

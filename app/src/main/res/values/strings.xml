@@ -133,4 +133,6 @@
     <string name="error_update_check">Une erreur s\'est produite lors de la vérification de la mise à jour. Redémarrez votre application.</string>
     <string name="version_format">Version: %s</string>
     <string name="error_rgpd">Vous devez accepter les règles RGPD pour continuer</string>
+    <string name="captured_image" translatable="false">Captured image</string>
+    <string name="access_comment" translatable="false">Comment</string>
 </resources>

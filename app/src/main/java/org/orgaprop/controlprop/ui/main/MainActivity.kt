@@ -15,9 +15,9 @@ import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.databinding.ActivityMainBinding
 
 import org.orgaprop.controlprop.ui.BaseActivity
-import org.orgaprop.controlprop.ui.getmail.GetMailActivity
+import org.orgaprop.controlprop.ui.getMail.GetMailActivity
 import org.orgaprop.controlprop.ui.main.types.LoginData
-import org.orgaprop.controlprop.ui.selectentry.SelectEntryActivity
+import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
 import org.orgaprop.controlprop.viewmodels.MainViewModel
 
 
@@ -31,17 +31,8 @@ class MainActivity : BaseActivity() {
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d(TAG, "onCreate: Activité créée")
         super.onCreate(savedInstanceState)
-
-        Log.d(TAG, "onCreate: Initialize components")
-        initializeComponents()
-
-        Log.d(TAG, "onCreate: Setup components")
-        setupComponents()
-
-        Log.d(TAG, "onCreate: Check user logged in")
-        checkUserLoggedIn()
+        Log.d(TAG, "onCreate: Activité créée")
     }
 
 
@@ -53,6 +44,7 @@ class MainActivity : BaseActivity() {
     override fun setupComponents() {
         setupObservers()
         setupListeners()
+        checkUserLoggedIn()
     }
     override fun setupObservers() {
         viewModel.loginState.observe(this, Observer { state ->

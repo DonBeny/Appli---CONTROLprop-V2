@@ -1,5 +1,6 @@
 package org.orgaprop.controlprop.ui.launch
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -12,6 +13,7 @@ import org.orgaprop.controlprop.ui.main.MainActivity
 import org.orgaprop.controlprop.managers.PermissionManager
 import org.orgaprop.controlprop.viewmodels.LaunchViewModel
 
+@SuppressLint("CustomSplashScreen")
 class LaunchActivity : AppCompatActivity() {
 
     private val TAG = "LaunchActivity"
@@ -47,14 +49,14 @@ class LaunchActivity : AppCompatActivity() {
 
         //displayVersion()
 
-        Log.d(TAG, "initialized");
+        Log.d(TAG, "initialized")
     }
 
     private fun observeViewModel() {
         viewModel.navigationEvent.observe(this) { navigateToMain() }
         viewModel.errorEvent.observe(this) { showError(it) }
 
-        Log.d(TAG, "observed");
+        Log.d(TAG, "observed")
     }
 
     private fun checkPermissionsAndUpdate() {

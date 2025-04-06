@@ -77,29 +77,6 @@ class LoginRepository(private val loginManager: LoginManager) {
     }
 
     /**
-     * Vérifie la version de l'application avec le serveur.
-     *
-     * @param idMbr ID du membre
-     * @param deviceId Identifiant unique du device
-     * @return JSONObject contenant la réponse du serveur
-     */
-    suspend fun checkVersion(idMbr: String, deviceId: String): JSONObject {
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = loginManager.checkVersion(idMbr, deviceId)
-                loginCallback?.onVersionCheckSuccess(response) // Notifier le succès
-                response
-            } catch (e: BaseException) {
-                // Relancer l'exception si elle est déjà une BaseException
-                throw e
-            } catch (e: Exception) {
-                loginCallback?.onVersionCheckFailure(e.message ?: "Version check failed") // Notifier l'échec
-                throw LoginException("Version check failed: ${e.message}", e)
-            }
-        }
-    }
-
-    /**
      * Nettoie les données de connexion.
      */
     fun clearLoginData() {

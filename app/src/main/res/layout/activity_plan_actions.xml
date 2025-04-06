@@ -9,7 +9,7 @@
 
     android:background="@drawable/new_image_fond_tablette"
 
-    tools:context=".ui.planactions.PlanActionsActivity" >
+    tools:context=".ui.planActions.PlanActionsActivity" >
 
     <RelativeLayout android:id="@+id/title_layout"
         android:layout_width="match_parent"

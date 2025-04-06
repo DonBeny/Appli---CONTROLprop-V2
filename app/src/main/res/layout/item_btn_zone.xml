@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:id="@+id/item_btn_zone"
+    android:layout_height="wrap_content"
+    android:layout_width="wrap_content"
+
+    android:layout_marginLeft="5dp"
+    android:layout_marginTop="5dp"
+    android:layout_marginRight="5dp"
+    android:layout_marginBottom="5dp"
+
+    android:background="@drawable/shadow_border"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <ImageView
+        android:id="@+id/item_btn_zone_img"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+
+        android:layout_marginBottom="30dp"
+
+        android:adjustViewBounds="true"
+        android:contentDescription="@string/hint_icon_zone"
+        android:maxHeight="150dp"
+        android:src="@drawable/espaces_exterieurs_vert" />
+
+    <TextView android:id="@+id/item_btn_zone_note"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+
+        android:text="@string/txt_so"
+        android:textColor="@color/_dark_grey" />
+
+    <TextView
+        android:id="@+id/item_btn_zone_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="10dp"
+
+        android:text="@string/lbl_abords"
+        android:textAlignment="center"
+        android:textSize="12sp" />
+
+</RelativeLayout>

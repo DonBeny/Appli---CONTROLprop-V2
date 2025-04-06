@@ -1,9 +1,11 @@
 package org.orgaprop.controlprop.ui.config
 
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
+import android.window.OnBackInvokedDispatcher
 import androidx.activity.OnBackPressedCallback
 import androidx.lifecycle.Observer
 import org.koin.androidx.viewmodel.ext.android.viewModel
@@ -12,7 +14,7 @@ import org.orgaprop.controlprop.databinding.ActivityTypeCtrlBinding
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.HomeActivity
 import org.orgaprop.controlprop.ui.main.MainActivity
-import org.orgaprop.controlprop.ui.selectentry.SelectEntryActivity
+import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
 import org.orgaprop.controlprop.viewmodels.TypeCtrlViewModel
 
 class TypeCtrlActivity : BaseActivity() {
@@ -37,10 +39,17 @@ class TypeCtrlActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
-
-        initializeComponents()
-        setupComponents()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                OnBackInvokedDispatcher.PRIORITY_DEFAULT
+            ) {
+                Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+                navigateToPrevScreen()
+            }
+        } else {
+            // Pour les versions inférieures à Android 13
+            onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+        }
     }
 
 
@@ -74,7 +83,7 @@ class TypeCtrlActivity : BaseActivity() {
         if( idRsd == null ) {
             Log.d(TAG, "setupComponents: idRsd is null")
             showToast("Aucune entrée sélectionnée")
-            navigateToSelectEntryActivity()
+            navigateToPrevScreen()
             return
         } else {
             Log.d(TAG, "setupComponents: idRsd is not null")
@@ -87,11 +96,11 @@ class TypeCtrlActivity : BaseActivity() {
         }
     }
     override fun setupListeners() {
-        binding.typeCtrlActivityEdleTxt.setOnClickListener { launchConfigCtrlActivity(TYPE_CTRL_ACTIVITY_TAG_EDLE) }
-        binding.typeCtrlActivityCpltTxt.setOnClickListener { launchConfigCtrlActivity(TYPE_CTRL_ACTIVITY_TAG_CTRL) }
-        binding.typeCtrlActivityRndTxt.setOnClickListener { launchConfigCtrlActivity(TYPE_CTRL_ACTIVITY_TAG_RANDOM) }
+        binding.typeCtrlActivityEdleTxt.setOnClickListener { navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_EDLE) }
+        binding.typeCtrlActivityCpltTxt.setOnClickListener { navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_CTRL) }
+        binding.typeCtrlActivityRndTxt.setOnClickListener { navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_RANDOM) }
         binding.typeCtrlActivityPlanActTxt.setOnClickListener { navigateToPlanActionsActivity() }
-        binding.typeCtrlActivityEdlsTxt.setOnClickListener { launchConfigCtrlActivity(TYPE_CTRL_ACTIVITY_TAG_EDLS) }
+        binding.typeCtrlActivityEdlsTxt.setOnClickListener { navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_EDLS) }
     }
     override fun setupObservers() {
         viewModel.planActionResult.observe(this, Observer { result ->
@@ -106,17 +115,28 @@ class TypeCtrlActivity : BaseActivity() {
 
 
 
-    private fun navigateToMainActivity() {
-        Log.d(TAG, "Navigating to MainActivity")
-        val intent = Intent(this, MainActivity::class.java).apply {
+    private fun navigateToPrevScreen() {
+        Log.d(TAG, "Navigating to SelectEntryActivity")
+        val intent = Intent(this, SelectEntryActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)
         finish()
     }
-    private fun navigateToSelectEntryActivity() {
-        Log.d(TAG, "Navigating to SelectEntryActivity")
-        val intent = Intent(this, SelectEntryActivity::class.java).apply {
+    private fun navigateToNextScreen(type: String) {
+        Log.d(TAG, "Navigating to ConfigCtrlActivity")
+
+        setTypeCtrl(type)
+
+        val intent = Intent(this, ConfigCtrlActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        startActivity(intent)
+    }
+
+    private fun navigateToMainActivity() {
+        Log.d(TAG, "Navigating to MainActivity")
+        val intent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)
@@ -132,16 +152,6 @@ class TypeCtrlActivity : BaseActivity() {
         }
         startActivity(intent)
     }
-    private fun launchConfigCtrlActivity(type: String) {
-        Log.d(TAG, "Navigating to ConfigCtrlActivity")
-
-        setTypeCtrl(type)
-
-        val intent = Intent(this, ConfigCtrlActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        startActivity(intent)
-    }
 
 
 
@@ -152,7 +162,7 @@ class TypeCtrlActivity : BaseActivity() {
     private val onBackPressedCallback = object : OnBackPressedCallback(true) {
         override fun handleOnBackPressed() {
             Log.d(TAG, "handleOnBackPressed: Back Pressed")
-            navigateToSelectEntryActivity()
+            navigateToPrevScreen()
         }
     }
 

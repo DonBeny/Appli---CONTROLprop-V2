@@ -17,6 +17,7 @@
         <LinearLayout android:id="@+id/grille_ctrl_activity_blk_top_lyt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:baselineAligned="false"
             android:weightSum="100"
 
             android:orientation="horizontal">
@@ -55,7 +56,7 @@
             </RelativeLayout>
 
             <!-- BLK RIGHT => REF + ENTRY + ADR -->
-            <LinearLayout
+            <LinearLayout android:id="@+id/grille_ctrl_activity_info_rsd_lyt"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="50"
@@ -79,7 +80,7 @@
                     android:text="@string/hint_entry_rsd"
                     android:textSize="12sp"/>
 
-                <TextView android:id="@+id/make_ctrl_activity_adr_rsd_txt"
+                <TextView android:id="@+id/grille_ctrl_activity_adr_rsd_txt"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
 
@@ -231,7 +232,7 @@
                     android:src="@drawable/icono_p_techniques_4"
                     android:contentDescription="@string/hint_desordres_techniques"/>
 
-                <ImageButton
+                <ImageButton android:id="@+id/grille_ctrl_activity_comment_btn"
                     android:layout_width="60dp"
                     android:layout_height="60dp"
 
@@ -275,13 +276,13 @@
             android:layout_marginTop="20dp"
             android:layout_marginBottom="70dp">
 
-            <LinearLayout android:id="@+id/grille_ctrl_activity_list_zone_lyt"
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/grille_ctrl_activity_list_zone_lyt"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
 
-                android:orientation="vertical">
+                tools:listitem="@layout/item_btn_zone">
 
-            </LinearLayout>
+            </androidx.recyclerview.widget.RecyclerView>
 
         </ScrollView>
 

@@ -1,4 +1,4 @@
-package org.orgaprop.test7.utils
+package org.orgaprop.controlprop.utils
 
 import android.content.Context
 import android.net.ConnectivityManager
