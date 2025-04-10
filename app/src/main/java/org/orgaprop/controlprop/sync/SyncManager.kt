@@ -15,7 +15,7 @@ import org.orgaprop.controlprop.models.ObjDateCtrl
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.BaseActivity.Companion.PREF_SAVED_USER
-import org.orgaprop.controlprop.ui.main.types.LoginData
+import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.utils.HttpTask
 import org.orgaprop.controlprop.utils.network.HttpTaskConstantes
 import org.orgaprop.controlprop.utils.network.NetworkMonitor
@@ -111,7 +111,7 @@ class SyncManager(
                     SyncResult.SUCCESS
                 } else {
                     logSyncErrors(errors)
-                    SyncResult.PARTIAL_SUCCESS
+                    SyncResult.PARTIAL_SUCCESS(errors)
                 }
             } else {
                 Log.e(TAG, "Sync failed with response: $response")
@@ -123,24 +123,6 @@ class SyncManager(
         }
     }
 
-    private fun getPendingControls(): List<SelectItem> {
-        return try {
-            Log.d(TAG, "Accessing SharedPrefs: ${sharedPrefs.javaClass.name}")
-            Log.d(TAG, "All keys in SharedPrefs: ${sharedPrefs.all.keys}")
-
-            val json = sharedPrefs.getString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, null)
-
-            Log.d(TAG, "getPendingControls: json: $json")
-
-            json?.let {
-                val type = object : TypeToken<List<SelectItem>>() {}.type
-                gson.fromJson(it, type) ?: emptyList()
-            } ?: emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading pending controls", e)
-            emptyList()
-        }
-    }
     private fun getUserData(): Pair<String, String>? {
         return try {
             val userData = sharedPrefs.getString(PREF_SAVED_USER, null)
@@ -254,11 +236,38 @@ class SyncManager(
 
 
 
+    fun getPendingControls(): List<SelectItem> {
+        return try {
+            Log.d(TAG, "Accessing SharedPrefs: ${sharedPrefs.javaClass.name}")
+            Log.d(TAG, "All keys in SharedPrefs: ${sharedPrefs.all.keys}")
+
+            val json = sharedPrefs.getString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, null)
+
+            Log.d(TAG, "getPendingControls: json: $json")
+
+            json?.let {
+                val type = object : TypeToken<List<SelectItem>>() {}.type
+                gson.fromJson(it, type) ?: emptyList()
+            } ?: emptyList()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading pending controls", e)
+            emptyList()
+        }
+    }
+    fun savePendingControls(controls: List<SelectItem>) {
+        sharedPrefs.edit()
+            .putString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, gson.toJson(controls))
+            .apply()
+        Log.d(TAG, "savePendingControls: ${controls.size} controls saved")
+    }
+
+
+
     sealed class SyncResult {
         data object SUCCESS : SyncResult()
         data object FAILURE : SyncResult()
         data object NO_NETWORK : SyncResult()
-        data object PARTIAL_SUCCESS : SyncResult()
+        data class PARTIAL_SUCCESS(val errors: List<ErrorItem>) : SyncResult()
     }
 
 }

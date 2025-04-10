@@ -14,7 +14,7 @@ import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.models.ObjBtnZone
 
 class BtnZoneAdapter(
-    var zones: List<ObjBtnZone>,
+    private var zones: List<ObjBtnZone>,
     private val minLimit: Int,
     private val maxLimit: Int,
     private val onZoneClicked: (ObjBtnZone) -> Unit
@@ -63,18 +63,10 @@ class BtnZoneAdapter(
             zoneNote.background = null
 
             Glide.with(itemView.context)
-                .load(getDrawableIdForZone(zone.icon))
+                .load(zone.icon)
                 .placeholder(R.drawable.localisation_vert)
                 .error(R.drawable.localisation_vert)
                 .into(zoneImg)
-        }
-
-        private fun getDrawableIdForZone(iconName: String): Int {
-            return itemView.context.resources.getIdentifier(
-                iconName,
-                "drawable",
-                itemView.context.packageName
-            )
         }
     }
 

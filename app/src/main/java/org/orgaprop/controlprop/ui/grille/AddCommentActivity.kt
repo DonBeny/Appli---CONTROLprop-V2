@@ -3,7 +3,6 @@ package org.orgaprop.controlprop.ui.grille
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Bitmap
-import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
@@ -22,8 +21,8 @@ import kotlinx.coroutines.launch
 
 import org.orgaprop.controlprop.databinding.ActivityAddCommentBinding
 import org.orgaprop.controlprop.ui.BaseActivity
-import org.orgaprop.controlprop.ui.main.MainActivity
-import org.orgaprop.controlprop.ui.main.types.LoginData
+import org.orgaprop.controlprop.ui.login.LoginActivity
+import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.utils.FileUtils
 import org.orgaprop.controlprop.viewmodels.AddCommentViewModel
 
@@ -39,12 +38,7 @@ class AddCommentActivity : BaseActivity() {
     private val takePictureLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
             val thumbnailBitmap = result.data?.let { data ->
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    data.extras?.getParcelable("data", Bitmap::class.java)
-                } else {
-                    @Suppress("DEPRECATION")
-                    data.extras?.getParcelable("data") as? Bitmap
-                }
+                data.extras?.getParcelable("data", Bitmap::class.java)
             }
 
             thumbnailBitmap?.let { viewModel.setImageBitmap(it) }
@@ -63,16 +57,9 @@ class AddCommentActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
-            onBackInvokedDispatcher.registerOnBackInvokedCallback(
-                OnBackInvokedDispatcher.PRIORITY_DEFAULT
-            ) {
-                Log.d(CtrlZoneActivity.TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
-                navigateToPrevScreen()
-            }
-        } else {
-            // Pour les versions inférieures à Android 13
-            onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
+            Log.d(CtrlZoneActivity.TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            navigateToPrevScreen()
         }
     }
 
@@ -82,7 +69,7 @@ class AddCommentActivity : BaseActivity() {
         binding = ActivityAddCommentBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        viewModel = ViewModelProvider(this).get(AddCommentViewModel::class.java)
+        viewModel = ViewModelProvider(this)[AddCommentViewModel::class.java]
 
         getUserData()?.let { userData ->
             user = userData
@@ -218,7 +205,7 @@ class AddCommentActivity : BaseActivity() {
     }
     private fun navigateToMainActivity() {
         Log.d(CtrlZoneActivity.TAG, "Navigating to MainActivity")
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)

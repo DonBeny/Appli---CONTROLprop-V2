@@ -33,10 +33,10 @@ class HomeActivity : BaseActivity() {
             mess += "\nentry : ${entrySelected.id} => ${entrySelected.name}"
         }
 
-        if( typeCtrl != null ) {
-            mess += "\ntypeCtrl : $typeCtrl"
+        mess += if( typeCtrl != null ) {
+            "\ntypeCtrl : $typeCtrl"
         } else {
-            mess += "\nLevée de plan d'actions"
+            "\nLevée de plan d'actions"
         }
 
         binding.homeActivityTextView.text = mess

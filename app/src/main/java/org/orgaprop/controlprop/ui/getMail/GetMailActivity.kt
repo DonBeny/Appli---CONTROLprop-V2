@@ -1,7 +1,6 @@
 package org.orgaprop.controlprop.ui.getMail
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -10,7 +9,7 @@ import androidx.activity.OnBackPressedCallback
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.orgaprop.controlprop.databinding.ActivityGetMailBinding
 import org.orgaprop.controlprop.ui.BaseActivity
-import org.orgaprop.controlprop.ui.main.MainActivity
+import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.viewmodels.GetMailViewModel
 
 class GetMailActivity : BaseActivity() {
@@ -25,16 +24,9 @@ class GetMailActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
-            onBackInvokedDispatcher.registerOnBackInvokedCallback(
-                OnBackInvokedDispatcher.PRIORITY_DEFAULT
-            ) {
-                Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
-                navigateToPrevScreen()
-            }
-        } else {
-            // Pour les versions inférieures à Android 13
-            onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
+            Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            navigateToPrevScreen()
         }
     }
 
@@ -75,7 +67,7 @@ class GetMailActivity : BaseActivity() {
 
     private fun navigateToMainActivity() {
         Log.d(TAG, "navigateToMainActivity: Navigating to MainActivity")
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)

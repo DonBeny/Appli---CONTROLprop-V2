@@ -280,7 +280,7 @@
                 android:layout_height="wrap_content"
 
                 android:layout_gravity="end|center_vertical"
-                android:paddingLeft="30dp"
+                android:paddingEnd="30dp"
 
                 android:text="@string/symb_info"
                 android:textColor="#FFFFFF"

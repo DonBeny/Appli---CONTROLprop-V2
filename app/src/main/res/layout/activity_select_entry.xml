@@ -6,6 +6,7 @@
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/new_image_fond_tablette"
     tools:context=".ui.selectEntry.SelectEntryActivity">
 
     <RelativeLayout android:id="@+id/select_entry_title_lyt"

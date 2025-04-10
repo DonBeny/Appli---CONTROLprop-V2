@@ -6,12 +6,15 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import org.orgaprop.controlprop.R
+import org.orgaprop.controlprop.exceptions.BaseException
+import org.orgaprop.controlprop.exceptions.ErrorCodes
 
 import org.orgaprop.controlprop.managers.GrilleCtrlManager
 import org.orgaprop.controlprop.models.ObjBtnZone
 import org.orgaprop.controlprop.models.ObjElement
 import org.orgaprop.controlprop.models.SelectItem
-import org.orgaprop.controlprop.ui.main.types.LoginData
+import org.orgaprop.controlprop.models.LoginData
 
 class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() {
 
@@ -36,14 +39,39 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
     private val _navigateToNext = MutableLiveData<Boolean>()
     val navigateToNext: LiveData<Boolean> get() = _navigateToNext
 
+    private val _error = MutableLiveData<Pair<Int, String>?>()
+    val error: LiveData<Pair<Int, String>?> get() = _error
+
+    private val _isLoading = MutableLiveData<Boolean>(false)
+    val isLoading: LiveData<Boolean> get() = _isLoading
+
 
 
     fun finishCtrl() {
+        Log.d(TAG, "finishCtrl: Starting control finalization")
+        _isLoading.value = true
+
         viewModelScope.launch {
-            Log.d(TAG, "finishCtrl: launch Finishing ctrl")
-            manager.finishCtrl { success ->
-                Log.d(TAG, "finishCtrl: Finishing ctrl done")
-                _navigateToNext.postValue(success)
+            try {
+                manager.finishCtrl { success ->
+                    _isLoading.postValue(false)
+
+                    if (success) {
+                        Log.d(TAG, "finishCtrl: Control finalized successfully")
+                        _navigateToNext.postValue(true)
+                    } else {
+                        Log.e(TAG, "finishCtrl: Control finalization failed")
+                        _error.postValue(Pair(ErrorCodes.SYNC_FAILED, "La synchronisation a échoué"))
+                    }
+                }
+            } catch (e: BaseException) {
+                Log.e(TAG, "finishCtrl: Error with code ${e.code}", e)
+                _isLoading.postValue(false)
+                _error.postValue(Pair(e.code, e.message ?: ErrorCodes.getMessageForCode(e.code)))
+            } catch (e: Exception) {
+                Log.e(TAG, "finishCtrl: Unexpected error", e)
+                _isLoading.postValue(false)
+                _error.postValue(Pair(ErrorCodes.UNKNOWN_ERROR, "Une erreur inattendue s'est produite"))
             }
         }
     }
@@ -63,93 +91,123 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
         this.withContract = withContract
     }
     fun setEntrySelected(entrySelected: SelectItem) {
-        _residenceData.value = entrySelected
-        generateBtnZones()
-        refreshAllNotes()
+        try {
+            _residenceData.value = entrySelected
+            Log.d(TAG, "setEntrySelected: Entry ${entrySelected.id} selected")
+            generateBtnZones()
+            refreshAllNotes()
+        } catch (e: BaseException) {
+            Log.e(TAG, "setEntrySelected: Error with code ${e.code}", e)
+            _error.value = Pair(e.code, e.message ?: ErrorCodes.getMessageForCode(e.code))
+        } catch (e: Exception) {
+            Log.e(TAG, "setEntrySelected: Unexpected error", e)
+            _error.value = Pair(ErrorCodes.UNKNOWN_ERROR, "Une erreur inattendue s'est produite")
+        }
     }
 
 
 
     private fun generateBtnZones() {
-        val btnZonesList = mutableListOf<ObjBtnZone>()
+        try {
+            _isLoading.value = true
+            val btnZonesList = mutableListOf<ObjBtnZone>()
 
-        userData.structure.forEach { (zoneId, structureZone) ->
-            Log.d(TAG, "Checking zone: ${structureZone.name} - proxi:$withProxi contract:$withContract")
+            userData.structure.forEach { (zoneId, structureZone) ->
+                Log.d(TAG, "Checking zone ${zoneId}: ${structureZone.name}")
 
-            val isProxiZone = withProxi && _residenceData.value?.prop?.zones?.proxi?.contains(zoneId) == true
-            val isContractZone = withContract && _residenceData.value?.prop?.zones?.contra?.contains(zoneId) == true
+                val isProxiZone = withProxi && _residenceData.value?.prop?.zones?.proxi?.contains(zoneId) == true
+                val isContractZone = withContract && _residenceData.value?.prop?.zones?.contra?.contains(zoneId) == true
 
-            if (isProxiZone || isContractZone) {
-                Log.d(TAG, "generateBtnZones: Adding zone to list")
+                if (isProxiZone || isContractZone) {
+                    Log.d(TAG, "generateBtnZones: Zone $zoneId is eligible")
 
-                val btnZone = ObjBtnZone(
-                    id = zoneId.toInt(),
-                    txt = structureZone.name,
-                    note = "S O",
-                    icon = getIconForZone(zoneId.toInt())
-                )
+                    val btnZone = ObjBtnZone(
+                        id = zoneId.toInt(),
+                        txt = structureZone.name,
+                        note = "S O",
+                        icon = getIconForZone(zoneId.toInt())
+                    )
 
-                Log.d(TAG, "generateBtnZones: btnZone: $btnZone")
-
-                btnZonesList.add(btnZone)
+                    btnZonesList.add(btnZone)
+                }
             }
-        }
 
-        _btnZones.value = btnZonesList
+            _btnZones.value = btnZonesList
+            _isLoading.value = false
+            Log.d(TAG, "generateBtnZones: Generated ${btnZonesList.size} zone buttons")
+        } catch (e: Exception) {
+            _isLoading.value = false
+            Log.e(TAG, "generateBtnZones: Error generating zone buttons", e)
+            throw BaseException(ErrorCodes.INVALID_DATA, "Erreur lors de la génération des boutons de zone", e)
+        }
     }
-    private fun getIconForZone(zoneId: Int): String {
+    private fun getIconForZone(zoneId: Int): Int {
         return when (zoneId) {
-            1 -> "abords_acces_immeubles_vert"
-            2 -> "hall_vert"
-            3 -> "ascenseur_vert"
-            4 -> "escalier_vert"
-            5 -> "paliers_coursives_vert"
-            6 -> "local_om_vert"
-            7 -> "local_velo_vert"
-            8 -> "cave_vert"
-            9 -> "parking_sous_sol_vert"
-            10 -> "cour_interieure_vert"
-            11 -> "parking_exterieur_vert"
-            12 -> "espaces_exterieurs_vert"
-            13 -> "agence_vert"
-            14 -> "salle_commune_vert"
-            15 -> "buanderie_vert"
-            16 -> "ascenseur_vert"
-            17 -> "local_om_vert"
-            18 -> "local_poussette_vert"
-            19 -> "paliers_coursives_vert"
-            else -> "localisation_vert"
+            1 -> R.drawable.abords_acces_immeubles_vert
+            2 -> R.drawable.hall_vert
+            3 -> R.drawable.ascenseur_vert
+            4 -> R.drawable.escalier_vert
+            5 -> R.drawable.paliers_coursives_vert
+            6 -> R.drawable.local_om_vert
+            7 -> R.drawable.local_velo_vert
+            8 -> R.drawable.cave_vert
+            9 -> R.drawable.parking_sous_sol_vert
+            10 -> R.drawable.cour_interieure_vert
+            11 -> R.drawable.parking_exterieur_vert
+            12 -> R.drawable.espaces_exterieurs_vert
+            13 -> R.drawable.agence_vert
+            14 -> R.drawable.salle_commune_vert
+            15 -> R.drawable.buanderie_vert
+            16 -> R.drawable.ascenseur_vert
+            17 -> R.drawable.local_om_vert
+            18 -> R.drawable.local_poussette_vert
+            19 -> R.drawable.paliers_coursives_vert
+            else -> R.drawable.localisation_vert
         }
     }
 
     fun updateZoneNote(zoneId: Int, elements: List<ObjElement>) {
-        Log.d(TAG, "updateZoneNote: zoneId: $zoneId, elements: $elements")
+        _isLoading.value = true
+        Log.d(TAG, "updateZoneNote: Updating zone $zoneId with ${elements.size} elements")
 
-        _residenceData.value?.let { currentEntry ->
-            Log.d(TAG, "updateZoneNote: currentEntry: $currentEntry")
+        try {
+            _residenceData.value?.let { currentEntry ->
+                val updatedEntry = manager.updateGrilleData(currentEntry, zoneId, elements)
+                val elementsMap = manager.getGrilleElements(updatedEntry)
+                val zoneNote = calculateZoneNote(elements)
+                val globalNote = calculateGlobalNote(elementsMap)
 
-            val updatedEntry = manager.updateGrilleData(currentEntry, zoneId, elements)
+                Log.d(TAG, "updateZoneNote: Zone note: $zoneNote%, Global note: $globalNote%")
 
-            Log.d(TAG, "updateZoneNote: updatedEntry: $updatedEntry")
-
-            val elementsMap = manager.getGrilleElements(updatedEntry)
-            val zoneNote = calculateZoneNote(elements)
-            val globalNote = calculateGlobalNote(elementsMap)
-
-            Log.d(TAG, "updateZoneNote: zoneNote: $zoneNote, globalNote: $globalNote")
-
-            _residenceData.value = updatedEntry.copy(
-                prop = updatedEntry.prop?.copy(
-                    ctrl = updatedEntry.prop.ctrl.copy(
-                        note = globalNote
+                val finalEntry = updatedEntry.copy(
+                    prop = updatedEntry.prop?.copy(
+                        ctrl = updatedEntry.prop.ctrl.copy(
+                            note = globalNote
+                        )
                     )
                 )
-            )
 
-            manager.saveControlProgress(updatedEntry)
+                manager.saveControlProgress(finalEntry)
 
-            _noteCtrl.value = "$globalNote%"
-            updateZoneNoteUi(zoneId, zoneNote)
+                _residenceData.value = finalEntry
+                _noteCtrl.value = "$globalNote%"
+                updateZoneNoteUi(zoneId, zoneNote)
+
+                _isLoading.value = false
+                Log.d(TAG, "updateZoneNote: Update successful")
+            } ?: run {
+                _isLoading.value = false
+                Log.e(TAG, "updateZoneNote: No residence data available")
+                throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Aucune résidence sélectionnée")
+            }
+        } catch (e: BaseException) {
+            _isLoading.value = false
+            Log.e(TAG, "updateZoneNote: Error with code ${e.code}", e)
+            _error.value = Pair(e.code, e.message ?: ErrorCodes.getMessageForCode(e.code))
+        } catch (e: Exception) {
+            _isLoading.value = false
+            Log.e(TAG, "updateZoneNote: Unexpected error", e)
+            _error.value = Pair(ErrorCodes.UNKNOWN_ERROR, "Une erreur inattendue s'est produite")
         }
     }
     private fun updateZoneNoteUi(zoneId: Int, note: Int) {
@@ -178,28 +236,46 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
         return zoneNotes.average().toInt()
     }
     fun refreshAllNotes() {
-        _residenceData.value?.let { currentEntry ->
-            val elementsMap = manager.getGrilleElements(currentEntry)
+        Log.d(TAG, "refreshAllNotes: Refreshing all notes")
 
-            val updatedZones = _btnZones.value?.map { zone ->
-                elementsMap[zone.id]?.let { elements ->
-                    zone.copy(note = "${calculateZoneNote(elements)}%")
-                } ?: zone
-            } ?: emptyList()
+        try {
+            _residenceData.value?.let { currentEntry ->
+                val elementsMap = manager.getGrilleElements(currentEntry)
 
-            _btnZones.value = updatedZones
+                val updatedZones = _btnZones.value?.map { zone ->
+                    elementsMap[zone.id]?.let { elements ->
+                        val zoneNote = calculateZoneNote(elements)
+                        Log.d(TAG, "refreshAllNotes: Zone ${zone.id} note: $zoneNote%")
+                        zone.copy(note = "$zoneNote%")
+                    } ?: zone
+                } ?: emptyList()
+                _btnZones.value = updatedZones
 
-            val globalNote = calculateGlobalNote(elementsMap)
-            _noteCtrl.value = if (globalNote < 0) "S O" else "$globalNote%"
+                val globalNote = calculateGlobalNote(elementsMap)
+                _noteCtrl.value = if (globalNote < 0) "S O" else "$globalNote%"
+                Log.d(TAG, "refreshAllNotes: Global note: $globalNote%")
 
-            _residenceData.value = currentEntry.copy(
-                prop = currentEntry.prop?.copy(
-                    ctrl = currentEntry.prop.ctrl.copy(
-                        note = globalNote
+                _residenceData.value = currentEntry.copy(
+                    prop = currentEntry.prop?.copy(
+                        ctrl = currentEntry.prop.ctrl.copy(
+                            note = globalNote
+                        )
                     )
                 )
-            )
+            }
+        } catch (e: BaseException) {
+            Log.e(TAG, "refreshAllNotes: Error with code ${e.code}", e)
+            _error.value = Pair(e.code, e.message ?: ErrorCodes.getMessageForCode(e.code))
+        } catch (e: Exception) {
+            Log.e(TAG, "refreshAllNotes: Unexpected error", e)
+            _error.value = Pair(ErrorCodes.UNKNOWN_ERROR, "Une erreur inattendue s'est produite")
         }
+    }
+
+
+
+    fun clearError() {
+        _error.value = null
     }
 
 

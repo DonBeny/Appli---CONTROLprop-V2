@@ -69,6 +69,7 @@
 
             android:layout_margin="20dp"
 
+            android:autofillHints=""
             android:gravity="top"
             android:hint="@string/hint_comment"
             android:inputType="textCapSentences|textAutoCorrect|textMultiLine"/>

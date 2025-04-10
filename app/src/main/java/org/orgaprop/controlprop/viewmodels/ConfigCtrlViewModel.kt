@@ -45,7 +45,7 @@ class ConfigCtrlViewModel : ViewModel() {
         this.idMbr = idMbr
         this.adrMac = adrMac
 
-        Log.d(TAG, "setUserCredentials: idMbr: ${this.idMbr}, adrMac: ${this.adrMac}")
+        //Log.d(TAG, "setUserCredentials: idMbr: ${this.idMbr}, adrMac: ${this.adrMac}")
     }
 
 }

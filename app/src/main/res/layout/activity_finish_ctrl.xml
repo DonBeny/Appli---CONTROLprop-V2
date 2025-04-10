@@ -76,6 +76,7 @@
                     android:layout_gravity="center_vertical"
                     android:layout_marginStart="20dp"
 
+                    android:contentDescription="@string/icon_actions_plan"
                     android:src="@drawable/icone_complet_blanc_2"/>
 
                 <TextView
@@ -107,6 +108,7 @@
                 <ImageView
                     android:layout_width="60dp"
                     android:layout_height="60dp"
+                    android:contentDescription="@string/icon_signature"
                     android:scaleType="fitXY"
 
                     android:background="@android:color/transparent"
@@ -142,6 +144,7 @@
                 <ImageView
                     android:layout_width="60dp"
                     android:layout_height="60dp"
+                    android:contentDescription="@string/icon_send_mail"
                     android:scaleType="fitXY"
 
                     android:background="@android:color/transparent"

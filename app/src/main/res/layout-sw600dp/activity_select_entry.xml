@@ -7,6 +7,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
+    android:background="@drawable/new_image_fond_tablette"
     tools:context=".ui.selectEntry.SelectEntryActivity">
 
     <RelativeLayout android:id="@+id/select_entry_title_lyt"
@@ -316,7 +317,7 @@
 
             android:checked="true"
 
-            android:text="Zones proxi"
+            android:text="@string/zones_proxi"
             android:textColor="@color/main_ctrl_prop"
             android:textSize="32sp" />
 
@@ -330,7 +331,7 @@
 
             android:checked="true"
 
-            android:text="Zones contrat"
+            android:text="@string/zones_contrat"
             android:textColor="@color/main_ctrl_prop"
             android:textSize="32sp" />
 

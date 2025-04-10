@@ -10,48 +10,30 @@ data class Referents(
     val ecdr: ObjAgent,
     val adm: ObjAgent,
     val ent: ObjAgent
-) : Parcelable
+) : Parcelable {
+
+    companion object {
+        private const val TAG = "Referents"
+
+        fun fromJson(json: JSONObject): Referents {
+            val ecdrJson = json.getJSONObject("ecdr")
+            val admJson = json.getJSONObject("adm")
+            val entJson = json.getJSONObject("ent")
+
+            val ecdr = ObjAgent.fromJson(ecdrJson)
+            val adm = ObjAgent.fromJson(admJson)
+            val ent = ObjAgent.fromJson(entJson)
+
+            Log.d(TAG, "fromJson: ecdr=$ecdr, adm=$adm, ent=$ent")
+
+            return Referents(ecdr, adm, ent)
+        }
+    }
+
+}
 
 
 
 fun parseReferentsFromJson(jsonObject: JSONObject): Referents {
-    val TAG = "parseReferentsFromJson"
-
-    val ecdrJson = jsonObject.getJSONObject("ecdr")
-
-    Log.d(TAG, "parseReferentsFromJson: ecdrJson=$ecdrJson")
-
-    val admJson = jsonObject.getJSONObject("adm")
-
-    Log.d(TAG, "parseReferentsFromJson: admJson=$admJson")
-
-    val entJson = jsonObject.getJSONObject("ent")
-
-    Log.d(TAG, "parseReferentsFromJson: entJson=$entJson")
-
-    val ecdr = ObjAgent(
-        id = ecdrJson.getInt("id"),
-        name = ecdrJson.getString("txt"),
-        type = ecdrJson.getString("type")
-    )
-
-    Log.d(TAG, "parseReferentsFromJson: ecdr=$ecdr")
-
-    val adm = ObjAgent(
-        id = admJson.getInt("id"),
-        name = admJson.getString("txt"),
-        type = admJson.getString("type")
-    )
-
-    Log.d(TAG, "parseReferentsFromJson: adm=$adm")
-
-    val ent = ObjAgent(
-        id = entJson.getInt("id"),
-        name = entJson.getString("txt"),
-        type = entJson.getString("type")
-    )
-
-    Log.d(TAG, "parseReferentsFromJson: ent=$ent")
-
-    return Referents(ecdr, adm, ent)
+    return Referents.fromJson(jsonObject)
 }

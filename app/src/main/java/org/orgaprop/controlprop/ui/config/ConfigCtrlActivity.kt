@@ -1,7 +1,6 @@
 package org.orgaprop.controlprop.ui.config
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Button
@@ -20,7 +19,7 @@ import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.databinding.ActivityConfigCtrlBinding
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.grille.GrilleCtrlActivity
-import org.orgaprop.controlprop.ui.main.MainActivity
+import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
 import org.orgaprop.controlprop.viewmodels.ConfigCtrlViewModel
 
@@ -36,16 +35,9 @@ class ConfigCtrlActivity: BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
-            onBackInvokedDispatcher.registerOnBackInvokedCallback(
-                OnBackInvokedDispatcher.PRIORITY_DEFAULT
-            ) {
-                Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
-                navigateToPrevScreen()
-            }
-        } else {
-            // Pour les versions inférieures à Android 13
-            onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
+            Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            navigateToPrevScreen()
         }
     }
 
@@ -191,7 +183,7 @@ class ConfigCtrlActivity: BaseActivity() {
 
     private fun navigateToMainActivity() {
         Log.d(TAG, "Navigating to MainActivity")
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)
@@ -210,13 +202,6 @@ class ConfigCtrlActivity: BaseActivity() {
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-    }
-
-    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
-        override fun handleOnBackPressed() {
-            Log.d(TAG, "handleOnBackPressed: Back Pressed")
-            navigateToPrevScreen()
-        }
     }
 
 }

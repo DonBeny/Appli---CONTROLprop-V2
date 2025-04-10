@@ -5,10 +5,12 @@ import android.util.Log
 
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.dsl.module
+import org.orgaprop.controlprop.managers.CtrlZoneManager
+import org.orgaprop.controlprop.managers.FinishCtrlManager
 
 import org.orgaprop.controlprop.utils.HttpTask
 import org.orgaprop.controlprop.utils.network.NetworkMonitor
-import org.orgaprop.controlprop.ui.main.repository.LoginRepository
+import org.orgaprop.controlprop.ui.login.repository.LoginRepository
 import org.orgaprop.controlprop.managers.GetMailManager
 import org.orgaprop.controlprop.managers.GrilleCtrlManager
 import org.orgaprop.controlprop.managers.LoginManager
@@ -16,28 +18,38 @@ import org.orgaprop.controlprop.managers.PlanActionsManager
 import org.orgaprop.controlprop.managers.SelectEntryManager
 import org.orgaprop.controlprop.managers.SelectListManager
 import org.orgaprop.controlprop.managers.SendMailManager
+import org.orgaprop.controlprop.managers.SignatureManager
 import org.orgaprop.controlprop.managers.TypeCtrlManager
+import org.orgaprop.controlprop.security.SecureCredentialsManager
 import org.orgaprop.controlprop.sync.SyncManager
 import org.orgaprop.controlprop.ui.BaseActivity
+import org.orgaprop.controlprop.ui.login.mappers.LoginResponseMapper
+import org.orgaprop.controlprop.viewmodels.MainViewModel
 import org.orgaprop.controlprop.viewmodels.AddCommentViewModel
 import org.orgaprop.controlprop.viewmodels.ConfigCtrlViewModel
 import org.orgaprop.controlprop.viewmodels.CtrlZoneViewModel
 import org.orgaprop.controlprop.viewmodels.FinishCtrlViewModel
-import org.orgaprop.controlprop.viewmodels.MainViewModel
+import org.orgaprop.controlprop.viewmodels.LoginViewModel
 import org.orgaprop.controlprop.viewmodels.GetMailViewModel
 import org.orgaprop.controlprop.viewmodels.GrilleCtrlViewModel
 import org.orgaprop.controlprop.viewmodels.PlanActionsViewModel
 import org.orgaprop.controlprop.viewmodels.SelectEntryViewModel
 import org.orgaprop.controlprop.viewmodels.SelectListViewModel
 import org.orgaprop.controlprop.viewmodels.SendMailViewModel
+import org.orgaprop.controlprop.viewmodels.SignatureViewModel
 import org.orgaprop.controlprop.viewmodels.TypeCtrlViewModel
 
 
-val viewModelModule = module {
 
+val viewModelModule = module {
     viewModel {
         Log.e("AppModule", "Creating MainViewModel...")
-        MainViewModel(get(), get())
+        MainViewModel()
+    }
+
+    viewModel {
+        Log.e("AppModule", "Creating LoginViewModel...")
+        LoginViewModel(get(), get())
     }
 
     viewModel {
@@ -62,7 +74,7 @@ val viewModelModule = module {
 
     viewModel {
         Log.e("AppModule", "Creating PlanActionsViewModel...")
-        PlanActionsViewModel(get())
+        PlanActionsViewModel(get(), get())
     }
 
     viewModel {
@@ -77,12 +89,12 @@ val viewModelModule = module {
 
     viewModel {
         Log.e("AppModule", "Creating SendMailViewModel...")
-        SendMailViewModel(get())
+        SendMailViewModel(get(), get())
     }
 
     viewModel {
         Log.e("AppModule", "Creating CtrlZoneViewModel...")
-        CtrlZoneViewModel()
+        CtrlZoneViewModel(get())
     }
 
     viewModel {
@@ -92,13 +104,16 @@ val viewModelModule = module {
 
     viewModel {
         Log.e("AppModule", "Creating FinishCtrlViewModel...")
-        FinishCtrlViewModel()
+        FinishCtrlViewModel(get())
     }
 
+    viewModel {
+        Log.e("AppModule", "Creating SignatureViewModel...")
+        SignatureViewModel(get())
+    }
 }
 
 val managerModule = module {
-
     single {
         Log.e("AppModule", "Creating HttpTask...")
         HttpTask(get())
@@ -112,6 +127,16 @@ val managerModule = module {
     single {
         Log.e("AppModule", "Creating LoginRepository...")
         LoginRepository(get())
+    }
+
+    single {
+        Log.e("AppModule", "Creating LoginResponseMapper...")
+        LoginResponseMapper()
+    }
+
+    single {
+        Log.e("AppModule", "Creating SecureCredentialsManager...")
+        SecureCredentialsManager(get())
     }
 
     single {
@@ -152,6 +177,11 @@ val managerModule = module {
     }
 
     single {
+        Log.e("AppModule", "Creating CtrlZoneManager...")
+        CtrlZoneManager(get())
+    }
+
+    single {
         Log.e("AppModule", "Creating SendMailManager...")
         SendMailManager(get(), get())
     }
@@ -161,6 +191,15 @@ val managerModule = module {
         SyncManager(get(), get(), get())
     }
 
+    single {
+        Log.e("AppModule", "Creating FinishCtrlManager...")
+        FinishCtrlManager(get(), get())
+    }
+
+    single {
+        Log.e("AppModule", "Creating SignatureManager...")
+        SignatureManager(get(), get())
+    }
 }
 
 val preferencesModule = module {

@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.managers.TypeCtrlManager
 
 class TypeCtrlViewModel(private val typeCtrlManager: TypeCtrlManager) : ViewModel() {
@@ -18,6 +19,9 @@ class TypeCtrlViewModel(private val typeCtrlManager: TypeCtrlManager) : ViewMode
     private val _planActionResult = MutableLiveData<Boolean>()
     val planActionResult: LiveData<Boolean> get() = _planActionResult
 
+    private val _error = MutableLiveData<Pair<Int, String>?>(null)
+    val error: LiveData<Pair<Int, String>?> get() = _error
+
     fun fetchPlanAction(rsd: Int) {
         viewModelScope.launch {
             try {
@@ -27,6 +31,7 @@ class TypeCtrlViewModel(private val typeCtrlManager: TypeCtrlManager) : ViewMode
                 _planActionResult.value = id > 0
             } catch (e: TypeCtrlManager.TypeCtrlException) {
                 _planActionResult.value = false
+                _error.value = Pair(e.code, e.message ?: ErrorCodes.getMessageForCode(e.code))
                 Log.e(TAG, "fetchPlanAction: Error fetching plan action", e)
             }
         }

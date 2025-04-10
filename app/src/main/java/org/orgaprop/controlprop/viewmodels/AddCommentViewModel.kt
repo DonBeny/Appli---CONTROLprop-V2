@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.orgaprop.controlprop.ui.main.types.LoginData
+import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.utils.FileUtils
 
 class AddCommentViewModel : ViewModel() {
@@ -42,8 +42,8 @@ class AddCommentViewModel : ViewModel() {
     }
 
     fun prepareCommentData() {
-        Log.d(TAG, "prepareCommentData: Comment text: ${_commentText.value}")
-        Log.d(TAG, "prepareCommentData: Image bitmap: ${_imageBitmap.value}")
+        //Log.d(TAG, "prepareCommentData: Comment text: ${_commentText.value}")
+        //Log.d(TAG, "prepareCommentData: Image bitmap: ${_imageBitmap.value}")
 
         _navigationEvent.value = NavigationEvent.SaveComment(
             commentText = _commentText.value,

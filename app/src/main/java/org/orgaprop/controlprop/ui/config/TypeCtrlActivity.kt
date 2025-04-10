@@ -1,7 +1,6 @@
 package org.orgaprop.controlprop.ui.config
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
@@ -13,7 +12,7 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.orgaprop.controlprop.databinding.ActivityTypeCtrlBinding
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.HomeActivity
-import org.orgaprop.controlprop.ui.main.MainActivity
+import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
 import org.orgaprop.controlprop.viewmodels.TypeCtrlViewModel
 
@@ -39,16 +38,9 @@ class TypeCtrlActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
-            onBackInvokedDispatcher.registerOnBackInvokedCallback(
-                OnBackInvokedDispatcher.PRIORITY_DEFAULT
-            ) {
-                Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
-                navigateToPrevScreen()
-            }
-        } else {
-            // Pour les versions inférieures à Android 13
-            onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
+            Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            navigateToPrevScreen()
         }
     }
 
@@ -111,6 +103,12 @@ class TypeCtrlActivity : BaseActivity() {
 
             Log.d(TAG, "setupComponents: canOpenPlanActions updated to: $canOpenPlanActions")
         })
+
+        viewModel.error.observe(this, Observer { errorPair ->
+            errorPair?.let { (code, message) ->
+                showToast(message)
+            }
+        })
     }
 
 
@@ -136,7 +134,7 @@ class TypeCtrlActivity : BaseActivity() {
 
     private fun navigateToMainActivity() {
         Log.d(TAG, "Navigating to MainActivity")
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)
@@ -157,13 +155,6 @@ class TypeCtrlActivity : BaseActivity() {
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-    }
-
-    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
-        override fun handleOnBackPressed() {
-            Log.d(TAG, "handleOnBackPressed: Back Pressed")
-            navigateToPrevScreen()
-        }
     }
 
 }

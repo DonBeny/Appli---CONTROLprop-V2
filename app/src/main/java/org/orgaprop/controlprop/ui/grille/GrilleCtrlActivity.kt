@@ -5,10 +5,13 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import android.widget.AdapterView
+import android.widget.Toast
 import android.window.OnBackInvokedDispatcher
 
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
+import androidx.lifecycle.ViewModel
 import androidx.recyclerview.widget.GridLayoutManager
 
 import com.google.gson.Gson
@@ -21,6 +24,8 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.orgaprop.controlprop.R
 
 import org.orgaprop.controlprop.databinding.ActivityGrilleCtrlBinding
+import org.orgaprop.controlprop.exceptions.BaseException
+import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.managers.GrilleCtrlManager
 import org.orgaprop.controlprop.models.ObjAgent
 import org.orgaprop.controlprop.models.ObjBtnZone
@@ -28,14 +33,15 @@ import org.orgaprop.controlprop.models.ObjElement
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.models.toObjAgentList
 import org.orgaprop.controlprop.ui.BaseActivity
-import org.orgaprop.controlprop.ui.HomeActivity
 import org.orgaprop.controlprop.ui.config.ConfigCtrlActivity
+import org.orgaprop.controlprop.ui.finish.FinishCtrlActivity
 import org.orgaprop.controlprop.ui.grille.adapters.AgentSpinnerAdapter
 import org.orgaprop.controlprop.ui.grille.adapters.BtnZoneAdapter
-import org.orgaprop.controlprop.ui.main.MainActivity
-import org.orgaprop.controlprop.ui.main.types.LoginData
+import org.orgaprop.controlprop.ui.login.LoginActivity
+import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
 import org.orgaprop.controlprop.ui.sendMail.SendMailActivity
+import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.viewmodels.GrilleCtrlViewModel
 
 class GrilleCtrlActivity : BaseActivity() {
@@ -46,6 +52,8 @@ class GrilleCtrlActivity : BaseActivity() {
     private val viewModel: GrilleCtrlViewModel by viewModel()
     private lateinit var btnZoneAdapter: BtnZoneAdapter
     private val grilleCtrlManager: GrilleCtrlManager by inject()
+
+    private var progressDialog: AlertDialog? = null
 
     private lateinit var user: LoginData
     private var idRsd: Int = 0
@@ -74,12 +82,14 @@ class GrilleCtrlActivity : BaseActivity() {
                     Log.d(TAG, "Received controlled elements: $controlledElements")
 
                     controlledElements?.let { elements ->
-                        val typeToken = object : TypeToken<List<ObjElement>>() {}.type
-                        val controlledElements = Gson().fromJson<List<ObjElement>>(elements, typeToken)
-
-                        Log.d(TAG, "Parsed controlled elements: $controlledElements")
-
-                        updateZoneNotes(zoneId, controlledElements)
+                        try {
+                            val typeToken = object : TypeToken<List<ObjElement>>() {}.type
+                            val newControlledElements = Gson().fromJson<List<ObjElement>>(elements, typeToken)
+                            updateZoneNotes(zoneId, newControlledElements)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error parsing controlled elements", e)
+                            showErrorMessage("Erreur lors de l'analyse des éléments contrôlés")
+                        }
                     }
                 }
             }
@@ -91,12 +101,16 @@ class GrilleCtrlActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        onBackInvokedDispatcher.registerOnBackInvokedCallback(
-            OnBackInvokedDispatcher.PRIORITY_DEFAULT
-        ) {
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
             Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
             navigateToPrevScreen()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        progressDialog?.dismiss()
+        progressDialog = null
     }
 
 
@@ -133,21 +147,14 @@ class GrilleCtrlActivity : BaseActivity() {
         val listPrestatesSaved = getListPrestates()
 
         if (entrySaved == null || typeCtrlSaved == null || confCtrlSaved == null || listAgentsSaved == null || listPrestatesSaved == null) {
-            if (entrySaved == null) {
-                Log.d(TAG, "setupComponents: entrySaved is null")
-            }
-            if (typeCtrlSaved == null) {
-                Log.d(TAG, "setupComponents: typeCtrlSaved is null")
-            }
-            if (confCtrlSaved == null) {
-                Log.d(TAG, "setupComponents: confCtrlSaved is null")
-            }
-            if (listAgentsSaved == null) {
-                Log.d(TAG, "setupComponents: listAgentsSaved is null")
-            }
-            if (listPrestatesSaved == null) {
-                Log.d(TAG, "setupComponents: listPrestatesSaved is null")
-            }
+            Log.e(TAG, "setupComponents: Missing required data, navigating to SelectEntryActivity")
+
+            if (entrySaved == null) Log.e(TAG, "setupComponents: entrySaved is null")
+            if (typeCtrlSaved == null) Log.e(TAG, "setupComponents: typeCtrlSaved is null")
+            if (confCtrlSaved == null) Log.e(TAG, "setupComponents: confCtrlSaved is null")
+            if (listAgentsSaved == null) Log.e(TAG, "setupComponents: listAgentsSaved is null")
+            if (listPrestatesSaved == null) Log.e(TAG, "setupComponents: listPrestatesSaved is null")
+
             navigateToSelectEntryActivity()
             return
         } else {
@@ -160,49 +167,46 @@ class GrilleCtrlActivity : BaseActivity() {
             withProxi = proxiSaved
             withContract = contractSaved
 
-            Log.d(TAG, "setupComponents: confCtrl: $confCtrl")
+            try {
+                loadSavedGrilleData()
 
-            loadSavedGrilleData()
+                Log.d(TAG, "setupComponents: Entry selected ID: ${entrySelected.id}")
 
-            viewModel.setEntrySelected(entrySelected)
-            viewModel.refreshAllNotes()
+                viewModel.setEntrySelected(entrySelected)
+                viewModel.refreshAllNotes()
 
-            Log.d(TAG, "setupComponents: idRsd: $idRsd")
-            //Log.d(TAG, "setupComponents: listAgentsSaved: $listAgentsSaved")
+                listAgents = listAgentsSaved.toObjAgentList()
+                listPrestates = listPrestatesSaved.toObjAgentList()
 
-            listAgents = listAgentsSaved.toObjAgentList()
+                setupZoneRecyclerView()
 
-            //Log.d(TAG, "setupComponents: listAgents: $listAgents")
-            //Log.d(TAG, "setupComponents: listPrestatesSaved: $listPrestatesSaved")
+                if (!isInitialDataSetupDone) {
+                    initializeUI()
+                    isInitialDataSetupDone = true
+                }
 
-            listPrestates = listPrestatesSaved.toObjAgentList()
+                setupObservers()
+                setupListeners()
 
-            //Log.d(TAG, "setupComponents: listPrestates: $listPrestates")
-
-            setupZoneRecyclerView()
-
-            if (!isInitialDataSetupDone) {
-                initializeUI()
-                isInitialDataSetupDone = true
+                viewModel.refreshAllNotes()
+            } catch (e: BaseException) {
+                Log.e(TAG, "setupComponents: Error loading saved grille data", e)
+                showErrorMessage(e.message ?: ErrorCodes.getMessageForCode(e.code))
+            } catch (e: Exception) {
+                Log.e(TAG, "setupComponents: Unexpected error", e)
+                showErrorMessage("Une erreur inattendue s'est produite lors du chargement des données")
             }
-
-            setupObservers()
-            setupListeners()
         }
     }
     override fun setupObservers() {
-        val myTag = "$TAG::setupObservers"
-
-        Log.d(myTag, "setupObservers: Setting up observers")
+        Log.d(TAG, "setupObservers: Setting up observers")
 
         viewModel.noteCtrl.observe(this) { note ->
             binding.grilleCtrlActivityNoteCtrlTxt.text = note
 
-            Log.d(myTag, "noteCtrl: $note")
+            Log.d(TAG, "noteCtrl: $note")
 
             val noteValue = if (note == "S O") -1 else note.removeSuffix("%").toIntOrNull() ?: -1
-
-            Log.d(myTag, "noteValue: $noteValue")
 
             val backgroundRes = when {
                 noteValue < 0 -> R.drawable.ctrl_note_grey
@@ -215,14 +219,28 @@ class GrilleCtrlActivity : BaseActivity() {
         }
 
         viewModel.navigateToNext.observe(this) { success ->
-            if (success) navigateToNextScreen()
+            if (success) {
+                UiUtils.showSuccessSnackbar(binding.root, "Contrôle finalisé avec succès")
+                navigateToNextScreen()
+            }
+        }
+
+        viewModel.isLoading.observe(this) { isLoading ->
+            showLoading(isLoading)
+        }
+
+        viewModel.error.observe(this) { errorData ->
+            errorData?.let { (code, message) ->
+                showErrorMessage(message)
+                viewModel.clearError()
+            }
         }
     }
     override fun setupListeners() {
         Log.d(TAG, "setupListeners: Setting up listeners")
 
         binding.grilleCtrlActivityPrevBtn.setOnClickListener {
-            onBackPressedCallback.handleOnBackPressed()
+            navigateToPrevScreen()
         }
 
         binding.grilleCtrlActivityTechBtn.setOnClickListener {
@@ -253,11 +271,30 @@ class GrilleCtrlActivity : BaseActivity() {
                         -item.id
                     }
 
-                    entrySelected.prop!!.ctrl.prestate = prestateValue
+                    try {
+                        val updatedEntry = entrySelected.copy(
+                            prop = entrySelected.prop?.copy(
+                                ctrl = entrySelected.prop!!.ctrl.copy(
+                                    prestate = prestateValue
+                                )
+                            )
+                        )
+                        entrySelected = updatedEntry
+                        setEntrySelected(updatedEntry)
 
-                    setEntrySelected(entrySelected)
+                        // MODIFICATION: Sauvegarde après modification
+                        try {
+                            grilleCtrlManager.saveControlProgress(updatedEntry)
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error saving control after agent selection", e)
+                            // Ne pas bloquer l'UI pour cette erreur
+                        }
 
-                    Log.d(TAG, "Selected agent: ${item.name}")
+                        Log.d(TAG, "Selected agent: ${item.name} with ID ${item.id}")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error updating prestate", e)
+                        showErrorMessage("Erreur lors de la mise à jour de l'agent")
+                    }
                 }
             }
 
@@ -268,6 +305,11 @@ class GrilleCtrlActivity : BaseActivity() {
 
         binding.grilleCtrlActivityEndBtn.setOnClickListener {
             Log.d(TAG, "End button clicked")
+            UiUtils.showAlert(
+                this,
+                "Voulez-vous finaliser ce contrôle ?",
+                "Confirmation"
+            )
             viewModel.finishCtrl()
         }
     }
@@ -277,17 +319,23 @@ class GrilleCtrlActivity : BaseActivity() {
     private fun loadSavedGrilleData() {
         Log.d(TAG, "loadSavedGrilleData: Loading saved grille data")
 
-        entrySelected = grilleCtrlManager.loadResidenceData(
-            entrySelected,
-            typeCtrl,
-            confCtrl
-        )
+        try {
+            entrySelected = grilleCtrlManager.loadResidenceData(
+                entrySelected,
+                typeCtrl,
+                confCtrl
+            )
 
-        grilleCtrlManager.saveControlProgress(entrySelected)
+            grilleCtrlManager.saveControlProgress(entrySelected)
 
-        Log.d(TAG, "loadSavedGrilleData: entrySelected: $entrySelected")
-        Log.d(TAG, "loadSavedGrilleData: typeCtrl: ${entrySelected.type}")
-        Log.d(TAG, "loadSavedGrilleData: confCtrl: ${entrySelected.prop?.ctrl?.conf}")
+            Log.d(TAG, "loadSavedGrilleData: Data loaded for entry ${entrySelected.id}")
+        } catch (e: BaseException) {
+            Log.e(TAG, "loadSavedGrilleData: Error with code ${e.code}", e)
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "loadSavedGrilleData: Unexpected error", e)
+            throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Erreur lors du chargement des données de la grille", e)
+        }
     }
     private fun initializeUI() {
         Log.d(TAG, "initializeUI: Initializing UI")
@@ -354,7 +402,7 @@ class GrilleCtrlActivity : BaseActivity() {
     private fun setupZoneRecyclerView() {
         Log.d(TAG, "setupZoneRecyclerView: Setting up zone recycler view")
 
-        binding.grilleCtrlActivityListZoneLyt.layoutManager = GridLayoutManager(this, 4)
+        binding.grilleCtrlActivityListZoneLyt.layoutManager = GridLayoutManager(this, 3)
 
         val minLimit = user.limits.down
         val maxLimit = user.limits.top
@@ -385,10 +433,54 @@ class GrilleCtrlActivity : BaseActivity() {
     }
 
     private fun updateZoneNotes(zoneId: Int, elements: List<ObjElement>) {
-        viewModel.updateZoneNote(zoneId, elements)
-        entrySelected = viewModel.residenceData.value ?: entrySelected
-        addPendingControl(entrySelected)
+        Log.d(TAG, "updateZoneNotes: Updating notes for zone $zoneId")
+
+        try {
+            // Délégation au ViewModel qui gère maintenant toute la logique
+            viewModel.updateZoneNote(zoneId, elements)
+
+            // La mise à jour de entrySelected est maintenant gérée par l'observateur de residenceData
+            viewModel.residenceData.value?.let { updatedEntry ->
+                entrySelected = updatedEntry
+                // La sauvegarde est maintenant gérée dans le ViewModel
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "updateZoneNotes: Error updating zone notes", e)
+            showErrorMessage("Erreur lors de la mise à jour des notes de zone")
+        }
     }
+
+
+
+    private fun showErrorMessage(message: String) {
+        UiUtils.showErrorSnackbar(
+            binding.root,
+            message,
+            actionText = "OK",
+            action = { /* Rien à faire ici */ }
+        )
+    }
+
+    private fun showLoading(show: Boolean) {
+        if (show) {
+            progressDialog?.dismiss()
+            progressDialog = UiUtils.showProgressDialog(
+                this,
+                "Traitement en cours...",
+                cancelable = false
+            )
+        } else {
+            progressDialog?.dismiss()
+            progressDialog = null
+        }
+
+        binding.grilleCtrlActivityPrevBtn.isEnabled = !show
+        binding.grilleCtrlActivityEndBtn.isEnabled = !show
+    }
+    private fun showAlert(message: String, title: String? = null) {
+        UiUtils.showAlert(this, message, title)
+    }
+
 
 
 
@@ -401,17 +493,17 @@ class GrilleCtrlActivity : BaseActivity() {
         finish()
     }
     private fun navigateToNextScreen() {
-        val intent = Intent(this, HomeActivity::class.java).apply {
+        Log.d(TAG, "Navigating to FinishCtrlActivity")
+        val intent = Intent(this, FinishCtrlActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
-        //startActivity(intent)
-        //finish()
-        Log.d(TAG, "Navigating to HomeActivity")
+        startActivity(intent)
+        finish()
     }
 
     private fun navigateToMainActivity() {
         Log.d(TAG, "Navigating to MainActivity")
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)
@@ -424,15 +516,6 @@ class GrilleCtrlActivity : BaseActivity() {
         }
         startActivity(intent)
         finish()
-    }
-
-
-
-    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
-        override fun handleOnBackPressed() {
-            Log.d(TAG, "handleOnBackPressed: Back Pressed")
-            navigateToPrevScreen()
-        }
     }
 
 }

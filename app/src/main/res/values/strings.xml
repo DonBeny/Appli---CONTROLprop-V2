@@ -135,4 +135,26 @@
     <string name="error_rgpd">Vous devez accepter les règles RGPD pour continuer</string>
     <string name="captured_image" translatable="false">Captured image</string>
     <string name="access_comment" translatable="false">Comment</string>
+    <string name="icon_signature">icon signature</string>
+    <string name="icon_actions_plan">icon actions plan</string>
+    <string name="icon_send_mail">icon send mail</string>
+    <!-- SendMailActivity -->
+    <string name="error_no_recipient">Veuillez saisir au moins un destinataire</string>
+    <string name="error_invalid_emails">Adresse(s) email invalide(s): %1$s</string>
+    <string name="error_empty_message">Veuillez saisir un message</string>
+    <string name="camera_permission_explanation">L\'application a besoin d\'accéder à votre caméra pour prendre une photo à joindre au rapport.</string>
+    <string name="permission_required">Permission requise</string>
+    <string name="no_camera_app">Aucune application de caméra disponible</string>
+    <string name="error_creating_file">Erreur lors de la création du fichier image</string>
+    <string name="photo_captured">Photo capturée</string>
+    <string name="photo_captured_success">Photo capturée avec succès</string>
+    <string name="error_processing_photo">Erreur lors du traitement de la photo</string>
+    <string name="thumbnail_captured">Miniature capturée</string>
+    <string name="error_no_photo_data">Erreur: aucune donnée photo</string>
+    <string name="photo_capture_cancelled">Capture photo annulée</string>
+    <string name="mail_sent_success">Mail envoyé avec succès</string>
+    <string name="error_network">Erreur réseau. Vérifiez votre connexion</string>
+    <string name="error_server">Erreur serveur</string>
+    <string name="error_timeout">Délai d\'attente dépassé</string>
+    <string name="error_unknown">Erreur inconnue</string>
 </resources>

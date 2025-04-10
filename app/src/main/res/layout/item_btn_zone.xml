@@ -17,10 +17,11 @@
         android:layout_height="match_parent"
 
         android:layout_marginBottom="30dp"
+        android:layout_marginTop="20dp"
 
         android:adjustViewBounds="true"
         android:contentDescription="@string/hint_icon_zone"
-        android:maxHeight="150dp"
+        android:maxHeight="200dp"
         android:src="@drawable/espaces_exterieurs_vert" />
 
     <TextView android:id="@+id/item_btn_zone_note"

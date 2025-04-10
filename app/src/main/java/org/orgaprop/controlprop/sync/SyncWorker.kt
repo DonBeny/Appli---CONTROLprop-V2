@@ -15,7 +15,7 @@ class SyncWorker(
     override suspend fun doWork(): Result {
         return when (syncManager.syncPendingControls()) {
             SyncManager.SyncResult.SUCCESS -> Result.success()
-            SyncManager.SyncResult.PARTIAL_SUCCESS -> Result.success()
+            is SyncManager.SyncResult.PARTIAL_SUCCESS -> Result.success()
             else -> Result.retry()
         }
     }

@@ -12,7 +12,10 @@ import kotlinx.coroutines.withContext
 
 import org.json.JSONArray
 import org.json.JSONObject
+import org.orgaprop.controlprop.exceptions.BaseException
+import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.models.ObjConfig
+import org.orgaprop.controlprop.models.ObjDateCtrl
 
 import org.orgaprop.controlprop.models.ObjElement
 import org.orgaprop.controlprop.models.SelectItem
@@ -35,23 +38,23 @@ class GrilleCtrlManager(
         Log.d(TAG, "Accessing SharedPrefs: ${sharedPrefs.javaClass.name}")
         Log.d(TAG, "All keys in SharedPrefs: ${sharedPrefs.all.keys}")
 
-        return try {
+        try {
             val json = sharedPrefs.getString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, null)
 
             Log.d(TAG, "getPendingControls: json: $json")
 
-            json?.let {
+            return json?.let {
                 val type = object : TypeToken<List<SelectItem>>() {}.type
                 gson.fromJson(it, type) ?: emptyList()
             } ?: emptyList()
         } catch (e: Exception) {
             Log.e(TAG, "Error loading pending controls", e)
-            emptyList()
+            throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Impossible de charger les contrôles en attente", e)
         }
     }
 
     fun getGrilleElements(entry: SelectItem): Map<Int, List<ObjElement>> {
-        return try {
+        try {
             val grille = entry.prop?.ctrl?.grille ?: return emptyMap()
             if (grille == "[]") return emptyMap()
 
@@ -68,17 +71,17 @@ class GrilleCtrlManager(
                 elementsMap[zoneId] = elements
             }
 
-            elementsMap
+            return elementsMap
         } catch (e: Exception) {
             Log.e(TAG, "Error getting grille elements", e)
-            emptyMap()
+            throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Erreur lors de la récupération des éléments de la grille", e)
         }
     }
 
 
 
     fun updateGrilleData(entry: SelectItem, zoneId: Int, elements: List<ObjElement>): SelectItem {
-        return try {
+        try {
             val currentGrille = if (entry.prop?.ctrl?.grille.isNullOrEmpty()) {
                 JSONArray()
             } else {
@@ -113,7 +116,7 @@ class GrilleCtrlManager(
 
             Log.d(TAG, "updateGrilleData: currentGrille: $currentGrille")
 
-            entry.copy(
+            return entry.copy(
                 prop = entry.prop?.copy(
                     ctrl = entry.prop.ctrl.copy(
                         grille = currentGrille.toString()
@@ -122,7 +125,7 @@ class GrilleCtrlManager(
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error updating grille data", e)
-            entry
+            throw BaseException(ErrorCodes.INVALID_DATA, "Erreur lors de la mise à jour des données de la grille", e)
         }
     }
 
@@ -142,62 +145,55 @@ class GrilleCtrlManager(
             )
         } catch (e: Exception) {
             Log.e(TAG, "Error converting JSON to ObjConfig", e)
-            ObjConfig()
+            throw BaseException(ErrorCodes.INVALID_DATA, "Erreur lors de la conversion de la configuration", e)
         }
 
-        return try {
-            getPendingControls()
+        try {
+            val savedControl = getPendingControls()
                 .firstOrNull { it.id == currentEntry.id }
                 ?.takeIf { it.prop?.ctrl?.grille != "[]" }
-                ?.let { savedControl ->
-                    val currentProp = currentEntry.prop
-                    val savedCtrl = savedControl.prop?.ctrl
 
-                    Log.d(TAG, "loadResidenceData: savedControl: $savedControl")
-                    Log.d(TAG, "loadResidenceData: currentProp: $currentProp")
-                    Log.d(TAG, "loadResidenceData: savedCtrl: $savedCtrl")
+            if (savedControl != null) {
+                val currentProp = currentEntry.prop
+                val savedCtrl = savedControl.prop?.ctrl
 
-                    if (currentProp != null && savedCtrl != null) {
-                        currentEntry.copy(
-                            type = typeCtrl,
-                            prop = currentProp.copy(
-                                ctrl = currentProp.ctrl.copy(
-                                    conf = objConfig,
-                                    date = savedCtrl.date,
-                                    prestate = savedCtrl.prestate,
-                                    grille = savedCtrl.grille
-                                )
+                Log.d(TAG, "loadResidenceData: savedControl: ${savedControl.id} => ${savedControl.prop?.ctrl?.date?.value} => ${savedControl.prop?.ctrl?.note}")
+                Log.d(TAG, "loadResidenceData: currentProp: ${currentProp?.ctrl?.date?.value} => ${currentProp?.ctrl?.note}")
+                Log.d(TAG, "loadResidenceData: savedCtrl: ${savedCtrl?.date?.value} => ${savedCtrl?.note}")
+
+                if (currentProp != null && savedCtrl != null) {
+                    return currentEntry.copy(
+                        type = typeCtrl,
+                        prop = currentProp.copy(
+                            ctrl = currentProp.ctrl.copy(
+                                note = savedCtrl.note,
+                                conf = objConfig,
+                                date = savedCtrl.date,
+                                prestate = savedCtrl.prestate,
+                                grille = savedCtrl.grille
                             )
-                        )
-                    } else {
-                        currentEntry.copy(
-                            type = typeCtrl,
-                            prop = currentEntry.prop?.copy(
-                                ctrl = currentEntry.prop.ctrl.copy(
-                                    conf = objConfig
-                                )
-                            )
-                        )
-                    }
-                } ?: currentEntry.copy(
-                    type = typeCtrl,
-                    prop = currentEntry.prop?.copy(
-                        ctrl = currentEntry.prop.ctrl.copy(
-                            conf = objConfig
                         )
                     )
-                ).also { updatedEntry ->
-                    saveControlProgress(updatedEntry)
                 }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading residence data", e)
-            currentEntry.copy(
+            }
+
+            val updatedEntry = currentEntry.copy(
                 type = typeCtrl,
                 prop = currentEntry.prop?.copy(
                     ctrl = currentEntry.prop.ctrl.copy(
                         conf = objConfig
                     )
-                ))
+                )
+            )
+
+            saveControlProgress(updatedEntry)
+            return updatedEntry
+        } catch (e: BaseException) {
+            Log.e(TAG, "Error loading residence data", e)
+            throw e
+        } catch (e: Exception) {
+            Log.e(TAG, "Error loading residence data", e)
+            throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Erreur lors du chargement des données de la résidence", e)
         }
     }
 
@@ -205,31 +201,51 @@ class GrilleCtrlManager(
 
     fun saveControlProgress(control: SelectItem) {
         try {
-            val current = getPendingControls().toMutableList().apply {
-                removeAll { it.id == control.id }
-                add(control)
-            }
+            val current = getPendingControls().toMutableList()
 
             Log.d(TAG, "saveControlProgress: current: $current")
+
+            val existingIndex = current.indexOfFirst { it.id == control.id }
+            if (existingIndex != -1) {
+                Log.d(TAG, "saveControlProgress: Replacing existing control for ID ${control.id}")
+                current.removeAt(existingIndex)
+            } else {
+                Log.d(TAG, "saveControlProgress: Adding new control for ID ${control.id}")
+            }
+
+            current.add(control)
 
             sharedPrefs.edit()
                 .putString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, gson.toJson(current))
                 .apply()
+
+            Log.d(TAG, "saveControlProgress: Control saved successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Error saving control progress", e)
+            throw BaseException(ErrorCodes.SYNC_FAILED, "Erreur lors de la sauvegarde de la progression du contrôle", e)
         }
     }
 
 
 
     fun finishCtrl(callback: (Boolean) -> Unit) {
+        Log.d(TAG, "finishCtrl: Starting synchronization")
+
         CoroutineScope(Dispatchers.IO).launch {
-            val result = syncManager.syncPendingControls()
+            try {
+                val result = syncManager.syncPendingControls()
+                Log.d(TAG, "finishCtrl: Sync result: $result")
 
-            Log.d(TAG, "finishCtrl: Sync result: $result")
+                withContext(Dispatchers.Main) {
+                    callback(true)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error during synchronization", e)
 
-            withContext(Dispatchers.Main) {
-                callback(true)
+                withContext(Dispatchers.Main) {
+                    // Même en cas d'erreur, on notifie le callback pour éviter de bloquer l'UI
+                    callback(false)
+                }
             }
         }
     }

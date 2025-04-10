@@ -237,7 +237,7 @@
                 android:scaleType="fitXY"
 
                 android:background="@drawable/button_standard"
-                android:src="@drawable/icon_txt"
+                android:src="@drawable/chat_bubble"
                 android:contentDescription="@string/title_comment"/>
 
         </LinearLayout>

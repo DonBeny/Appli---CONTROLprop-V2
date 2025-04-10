@@ -18,11 +18,19 @@ class LoginManager(
 
     private val TAG = "LoginManager"
 
+    /**
+     * Effectue la connexion de l'utilisateur
+     *
+     * @param username Nom d'utilisateur
+     * @param password Mot de passe
+     * @return JSONObject contenant la réponse du serveur
+     */
     suspend fun login(username: String, password: String): JSONObject {
-        return try {
+        return executeWithExceptionHandling {
             // Récupérer le numéro de version de l'application
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-            val appVersion = packageInfo.versionName // ou packageInfo.versionCode pour le code de version
+            val appVersion = packageInfo.versionName
+
             // Construire les paramètres pour la requête
             val paramsPost = JSONObject().apply {
                 put("psd", username)
@@ -41,22 +49,20 @@ class LoginManager(
 
             Log.d(TAG, "login response : $response")
 
-            val jsonObject = JSONObject(response)
-
-            Log.d(TAG, "login jsonObject : $jsonObject")
-
-            jsonObject
-        } catch (e: IOException) {
-            throw LoginException(ErrorCodes.NETWORK_ERROR, e)
-        } catch (e: JSONException) {
-            throw LoginException(ErrorCodes.INVALID_RESPONSE, e)
-        } catch (e: Exception) {
-            throw LoginException(ErrorCodes.UNKNOWN_ERROR, e)
+            JSONObject(response)
         }
     }
 
+    /**
+     * Vérifie les identifiants de connexion sans réellement se connecter
+     *
+     * @param username Nom d'utilisateur
+     * @param password Mot de passe
+     * @param adrMac Adresse MAC de l'appareil
+     * @return JSONObject contenant la réponse du serveur
+     */
     suspend fun checkLogin(username: String, password: String, adrMac: String): JSONObject {
-        return try {
+        return executeWithExceptionHandling {
             val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
             val appVersion = packageInfo.versionName
             val paramsPost = JSONObject().apply {
@@ -73,44 +79,57 @@ class LoginManager(
 
             Log.d(TAG, "checkLogin: response : $response")
 
-            val jsonObject = JSONObject(response)
-
-            Log.d(TAG, "checkLogin: jsonObject : $jsonObject")
-
-            jsonObject
-        } catch (e: IOException) {
-            throw LoginException(ErrorCodes.NETWORK_ERROR, e)
-        } catch (e: JSONException) {
-            throw LoginException(ErrorCodes.INVALID_RESPONSE, e)
-        } catch (e: Exception) {
-            throw LoginException(ErrorCodes.UNKNOWN_ERROR, e)
+            JSONObject(response)
         }
     }
 
+    /**
+     * Déconnecte l'utilisateur
+     *
+     * @param idMbr ID du membre
+     * @param adrMac Adresse MAC de l'appareil
+     * @return JSONObject contenant la réponse du serveur
+     */
     suspend fun logout(idMbr: Int, adrMac: String): JSONObject {
-        return try {
+        return executeWithExceptionHandling {
             val paramsPost = JSONObject().apply {
                 put("mbr", idMbr)
                 put("mac", adrMac)
             }.toString()
 
             val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION_CBL_LOGOUT, "", paramsPost)
-            val jsonObject = JSONObject(response)
-
-            Log.d(TAG, "logout: $jsonObject")
-
-            jsonObject
-        } catch (e: IOException) {
-            throw LoginException(ErrorCodes.NETWORK_ERROR, e)
-        } catch (e: JSONException) {
-            throw LoginException(ErrorCodes.INVALID_RESPONSE, e)
-        } catch (e: Exception) {
-            throw LoginException(ErrorCodes.UNKNOWN_ERROR, e)
+            JSONObject(response)
         }
     }
 
+    /**
+     * Efface les données de connexion stockées localement
+     */
     fun clearLoginData() {
-        // Logique pour effacer les données de connexion
+        // TODO: Implémenter la logique pour effacer les données de connexion
+        // Par exemple, supprimer les données dans les SharedPreferences
+    }
+
+    /**
+     * Méthode helper pour exécuter un bloc de code avec une gestion d'exceptions standard
+     *
+     * @param block Bloc de code à exécuter
+     * @return Le résultat du bloc de code
+     * @throws LoginException Si une erreur survient pendant l'exécution
+     */
+    private suspend fun <T> executeWithExceptionHandling(block: suspend () -> T): T {
+        return try {
+            block()
+        } catch (e: IOException) {
+            Log.e(TAG, "Erreur réseau: ${e.message}", e)
+            throw LoginException(ErrorCodes.NETWORK_ERROR, e)
+        } catch (e: JSONException) {
+            Log.e(TAG, "Réponse JSON invalide: ${e.message}", e)
+            throw LoginException(ErrorCodes.INVALID_RESPONSE, e)
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur inconnue: ${e.message}", e)
+            throw LoginException(ErrorCodes.UNKNOWN_ERROR, e)
+        }
     }
 
     class LoginException(
@@ -137,5 +156,4 @@ class LoginManager(
             }
         }
     }
-
 }

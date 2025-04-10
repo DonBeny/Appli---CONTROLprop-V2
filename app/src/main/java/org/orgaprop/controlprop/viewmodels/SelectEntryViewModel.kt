@@ -11,17 +11,18 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.orgaprop.controlprop.managers.SelectEntryManager
 import org.orgaprop.controlprop.models.SelectItem
-import org.orgaprop.controlprop.ui.selectList.SelectListActivity
+import org.orgaprop.controlprop.ui.selectEntry.SelectListActivity
 
 class SelectEntryViewModel(
     private val selectEntryManager: SelectEntryManager
 ) : ViewModel() {
 
-    private val TAG = "SelectEntryViewModel"
+    companion object {
+        private const val TAG = "SelectEntryViewModel"
+    }
 
     private var idMbr: Int = -1
     private var adrMac: String = ""
-    //private var entrySelected: SelectItem? = null
 
     // LiveData pour les sélections
     private val _selectedAgence = MutableLiveData<String>()
@@ -48,17 +49,16 @@ class SelectEntryViewModel(
     private val _isContractChecked = MutableLiveData(true)
     val isContractChecked: LiveData<Boolean> get() = _isContractChecked
 
-    private val _navigateToSearch = MutableSharedFlow<String>()
+    private val _navigateToSearch = MutableSharedFlow<String>(replay = 1)
     val navigateToSearch: SharedFlow<String> get() = _navigateToSearch
-
-    //private val _navigateToNextScreen = MutableLiveData<Boolean>()
-    //val navigateToNextScreen: LiveData<Boolean> get() = _navigateToNextScreen
 
     private val _navigateToCloseApp = MutableLiveData<Boolean>()
     val navigateToCloseApp: LiveData<Boolean> get() = _navigateToCloseApp
 
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage: LiveData<String> get() = _errorMessage
+
+
 
     fun onLogoutButtonClicked() {
         viewModelScope.launch {
@@ -106,72 +106,92 @@ class SelectEntryViewModel(
         }
     }
 
+
+
     fun handleSelectedItem(item: SelectItem) {
-        Log.d(TAG, "handleSelectedItem: Item ${item.type} selected: ${item.name}")
+        //Log.d(TAG, "handleSelectedItem: Item ${item.type} selected: ${item.name}")
 
         when (item.type) {
             SelectListActivity.SELECT_LIST_TYPE_AGC -> {
-                Log.d(TAG, "handleSelectedItem: Selected Agence: ${item.name}")
+                //Log.d(TAG, "handleSelectedItem: Selected Agence: ${item.name}")
 
                 _selectedAgence.value = item.name
                 _selectedAgenceId.value = item.id
+
+                _selectedGroupement.value = ""
+                _selectedGroupementId.value = null
+                _selectedResidence.value = ""
+                _selectedResidenceId.value = null
             }
             SelectListActivity.SELECT_LIST_TYPE_GRP -> {
-                Log.d(TAG, "handleSelectedItem: Selected Groupement: ${item.name}")
+                //Log.d(TAG, "handleSelectedItem: Selected Groupement: ${item.name}")
 
                 _selectedGroupement.value = item.name
                 _selectedGroupementId.value = item.id
+
+                _selectedResidence.value = ""
+                _selectedResidenceId.value = null
             }
             SelectListActivity.SELECT_LIST_TYPE_RSD -> {
-                Log.d(TAG, "handleSelectedItem: Selected Residence: ${item.name}")
+                //Log.d(TAG, "handleSelectedItem: Selected Residence: ${item.name}")
 
                 _selectedResidence.value = item.ref + " -- " + item.name + " -- Entrée " + item.entry
                 _selectedResidenceId.value = item.id
 
                 // Accéder aux données prop
-                item.prop?.let { prop ->
-                    Log.d(TAG, "Proxi zones: ${prop.zones.proxi}")
-                    Log.d(TAG, "Contra zones: ${prop.zones.contra}")
-                    Log.d(TAG, "Ctrl note: ${prop.ctrl.note}")
+                /*item.prop?.let { prop ->
+                    //Log.d(TAG, "Proxi zones: ${prop.zones.proxi}")
+                    //Log.d(TAG, "Contra zones: ${prop.zones.contra}")
+                    //Log.d(TAG, "Ctrl note: ${prop.ctrl.note}")
 
                     // Convertir la chaîne JSON en JSONArray
                     val grille = prop.ctrl.getGrilleAsJsonArray()
-                    Log.d(TAG, "Grille: $grille")
-                }
+                    //Log.d(TAG, "Grille: $grille")
+                }*/
             }
             SelectListActivity.SELECT_LIST_TYPE_SEARCH -> {
-                val t = JSONObject(item.comment)
-
-                Log.d(TAG, "handleSelectedItem: Selected Search:")
-                Log.d(TAG, t.toString())
-
-                _selectedAgence.value = t.getJSONObject("agency").getString("txt")
-                _selectedAgenceId.value = t.getJSONObject("agency").getInt("id")
-
-                _selectedGroupement.value = t.getJSONObject("group").getString("txt")
-                _selectedGroupementId.value = t.getJSONObject("group").getInt("id")
-
-                _selectedResidence.value = item.ref + " -- " + item.name + " -- Entrée " + item.entry
-                _selectedResidenceId.value = item.id
-
-                // Accéder aux données prop
-                item.prop?.let { prop ->
-                    Log.d(TAG, "Proxi zones: ${prop.zones.proxi}")
-                    Log.d(TAG, "Contra zones: ${prop.zones.contra}")
-                    Log.d(TAG, "Ctrl note: ${prop.ctrl.note}")
-
-                    // Convertir la chaîne JSON en JSONArray
-                    val grille = prop.ctrl.getGrilleAsJsonArray()
-                    Log.d(TAG, "Grille: $grille")
-                }
+                handleSearchItem(item)
             }
         }
     }
 
+    /**
+     * Traitement spécifique pour les résultats de recherche
+     * @param item Élément de recherche sélectionné
+     */
+    private fun handleSearchItem(item: SelectItem) {
+        try {
+            val t = JSONObject(item.comment)
+
+            _selectedAgence.value = t.getJSONObject("agency").getString("txt")
+            _selectedAgenceId.value = t.getJSONObject("agency").getInt("id")
+
+            _selectedGroupement.value = t.getJSONObject("group").getString("txt")
+            _selectedGroupementId.value = t.getJSONObject("group").getInt("id")
+
+            _selectedResidence.value = "${item.ref} -- ${item.name} -- Entrée ${item.entry}"
+            _selectedResidenceId.value = item.id
+        } catch (e: Exception) {
+            Log.e(TAG, "Error parsing search result: ${e.message}")
+            _errorMessage.value = "Erreur lors du traitement du résultat de recherche"
+        }
+    }
+
+
+
+    /**
+     * Définit un message d'erreur
+     * @param message Message d'erreur
+     */
     fun setErrorMessage(message: String) {
         _errorMessage.value = message
     }
 
+    /**
+     * Définit les informations d'identification de l'utilisateur
+     * @param idMbr ID de l'utilisateur
+     * @param adrMac Adresse MAC de l'appareil
+     */
     fun setUserCredentials(idMbr: Int, adrMac: String) {
         this.idMbr = idMbr
         this.adrMac = adrMac

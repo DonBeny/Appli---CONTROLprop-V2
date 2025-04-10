@@ -1,13 +1,11 @@
 package org.orgaprop.controlprop.ui.selectEntry
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import android.window.OnBackInvokedDispatcher
 
-import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
@@ -20,14 +18,16 @@ import org.orgaprop.controlprop.databinding.ActivitySelectEntryBinding
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.config.TypeCtrlActivity
-import org.orgaprop.controlprop.ui.main.MainActivity
-import org.orgaprop.controlprop.ui.selectList.SelectListActivity
+import org.orgaprop.controlprop.ui.login.LoginActivity
+import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.utils.extentions.getParcelableCompat
 import org.orgaprop.controlprop.viewmodels.SelectEntryViewModel
 
 class SelectEntryActivity : BaseActivity() {
 
-    private val TAG = "SelectEntryActivity"
+    companion object {
+        private const val TAG = "SelectEntryActivity"
+    }
 
     private lateinit var binding: ActivitySelectEntryBinding
     private val viewModel: SelectEntryViewModel by viewModel()
@@ -43,8 +43,20 @@ class SelectEntryActivity : BaseActivity() {
 
             Log.d(TAG, "selectionLauncher: Selected item: $selectedItem")
 
-            selectedItem?.let {
-                viewModel.handleSelectedItem(it)
+            selectedItem?.let { item ->
+                // Créer une copie modifiée de l'item avec la date mise à jour
+                val updatedItem = item.copy(
+                    prop = item.prop?.copy(
+                        ctrl = item.prop.ctrl.copy(
+                            date = item.prop.ctrl.date.copy(
+                                value = System.currentTimeMillis()
+                            )
+                        )
+                    )
+                )
+
+                Log.d(TAG, "selectionLauncher: Updated item with timestamp: $updatedItem")
+                viewModel.handleSelectedItem(updatedItem)
             }
         }
     }
@@ -54,16 +66,11 @@ class SelectEntryActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
-            onBackInvokedDispatcher.registerOnBackInvokedCallback(
-                OnBackInvokedDispatcher.PRIORITY_DEFAULT
-            ) {
-                Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
-                navigateToPrevScreen()
-            }
-        } else {
-            // Pour les versions inférieures à Android 13
-            onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(
+            OnBackInvokedDispatcher.PRIORITY_DEFAULT
+        ) {
+            Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            navigateToPrevScreen()
         }
     }
 
@@ -79,23 +86,20 @@ class SelectEntryActivity : BaseActivity() {
             Log.d(TAG, "initializeComponents: UserData is null")
             navigateToPrevScreen()
             return
-        } else {
-            Log.d(TAG, "initializeComponents: UserData is not null")
         }
 
-        val idMbr = userData.idMbr// (userData as JSONObject).optInt("idMbr", -1)
-        val adrMac = userData.adrMac// (userData as JSONObject).optString("adrMac", "")
+        val idMbr = userData.idMbr
+        val adrMac = userData.adrMac
 
         Log.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
 
         viewModel.setUserCredentials(idMbr, adrMac)
 
-        val hasContrat = userData.hasContrat// (userData as JSONObject).optBoolean("hasContrat", true) ?: true
+        val hasContrat = userData.hasContract
         binding.selectEntryContraChk.isEnabled = hasContrat
 
         Log.d(TAG, "initializeComponents: hasContrat: $hasContrat")
 
-        // Si hasContrat est false, décocher la case par défaut
         if (!hasContrat) {
             binding.selectEntryContraChk.isChecked = false
         }
@@ -188,13 +192,18 @@ class SelectEntryActivity : BaseActivity() {
         viewModel.navigateToCloseApp.observe(this, Observer { shouldClose ->
             if (shouldClose) {
                 clearUserData()
-                finishAffinity() // Fermer l'application
+                finishAffinity()
             }
         })
 
         // Observer pour les erreurs
         viewModel.errorMessage.observe(this, Observer { errorMessage ->
-            Toast.makeText(this, errorMessage, Toast.LENGTH_SHORT).show(    )
+            UiUtils.showErrorSnackbar(
+                binding.root,
+                errorMessage,
+                actionText = "OK",
+                action = {}
+            )
         })
 
         // Observer pour la navigation vers la recherche
@@ -222,7 +231,15 @@ class SelectEntryActivity : BaseActivity() {
                 }
 
                 if (parentId == null) {
-                    viewModel.setErrorMessage("Veuillez d'abord sélectionner une agence (pour GRP) ou un groupement (pour RSD)")
+                    val errorMessage = when (type) {
+                        SelectListActivity.SELECT_LIST_TYPE_GRP ->
+                            "Veuillez d'abord sélectionner une agence"
+                        SelectListActivity.SELECT_LIST_TYPE_RSD ->
+                            "Veuillez d'abord sélectionner un groupement"
+                        else -> "Sélection requise"
+                    }
+
+                    viewModel.setErrorMessage(errorMessage)
                     return
                 }
 
@@ -244,7 +261,7 @@ class SelectEntryActivity : BaseActivity() {
     }
     private fun navigateToPrevScreen() {
         Log.d(TAG, "navigateToMainActivity: Navigating to MainActivity")
-        val intent = Intent(this, MainActivity::class.java).apply {
+        val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)
@@ -257,9 +274,9 @@ class SelectEntryActivity : BaseActivity() {
         val entryList = getEntryList()
         val proxi = viewModel.isProximityChecked.value ?: false
         val contract = viewModel.isContractChecked.value ?: false
-        val b = proxi || contract
+        val optionsSelected = proxi || contract
 
-        if (selectedEntry != null && entryList != null && b) {
+        if (selectedEntry != null && entryList != null && optionsSelected) {
             setProxi(proxi)
             setContract(contract)
 
@@ -271,20 +288,17 @@ class SelectEntryActivity : BaseActivity() {
         } else {
             Log.e(TAG, "navigateToNextScreen: Données manquantes (selectedEntry ou entryList ou Chekbox)")
 
-            if( !b ) {
-                Toast.makeText(this, "Veuillez sélectionner au moins une option (Proximité ou Contrat)", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(this, "Veuillez sélectionner une entrée", Toast.LENGTH_SHORT).show()
+            if (!optionsSelected) {
+                UiUtils.showErrorSnackbar(
+                    binding.root,
+                    "Veuillez sélectionner au moins une option (Proximité ou Contrat)"
+                )
+            } else if (selectedEntry == null) {
+                UiUtils.showErrorSnackbar(
+                    binding.root,
+                    "Veuillez sélectionner une entrée"
+                )
             }
-        }
-    }
-
-
-
-    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
-        override fun handleOnBackPressed() {
-            Log.d(TAG, "handleOnBackPressed: Back Pressed")
-            navigateToPrevScreen()
         }
     }
 

@@ -137,6 +137,7 @@
                 android:layout_marginHorizontal="10dp"
                 android:layout_marginTop="10dp"
                 android:layout_marginBottom="100dp"
+                android:autofillHints=""
                 android:gravity="top"
                 android:hint="@string/hint_message"
                 android:inputType="text"

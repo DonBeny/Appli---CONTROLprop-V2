@@ -2,26 +2,38 @@ package org.orgaprop.controlprop.ui.planActions
 
 import android.app.DatePickerDialog
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import android.provider.CalendarContract
 import android.util.Log
 import android.widget.Toast
 import android.window.OnBackInvokedDispatcher
-import androidx.activity.OnBackPressedCallback
 import androidx.lifecycle.Observer
 
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.orgaprop.controlprop.databinding.ActivityPlanActionsBinding
+import org.orgaprop.controlprop.models.ObjPlanActions
 
 import org.orgaprop.controlprop.ui.BaseActivity
-import org.orgaprop.controlprop.ui.main.MainActivity
+import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
+import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.viewmodels.PlanActionsViewModel
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
 
+/**
+ * Activity permettant de gérer les plans d'actions.
+ *
+ * Flux principal:
+ * 1. Au chargement, récupération du plan en cours s'il existe
+ * 2. Si un plan existe (mode EDITION):
+ *    - Les champs sont remplis avec les données du plan
+ *    - L'utilisateur peut uniquement lever le plan
+ * 3. Si aucun plan n'existe (mode CREATION):
+ *    - L'utilisateur peut remplir les champs et enregistrer un nouveau plan
+ *    - L'utilisateur peut également ajouter un rappel au calendrier
+ */
 class PlanActionsActivity : BaseActivity() {
 
     private val TAG = "PlanActionsActivity"
@@ -35,16 +47,9 @@ class PlanActionsActivity : BaseActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // API 33+
-            onBackInvokedDispatcher.registerOnBackInvokedCallback(
-                OnBackInvokedDispatcher.PRIORITY_DEFAULT
-            ) {
-                Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
-                navigateToPrevScreen()
-            }
-        } else {
-            // Pour les versions inférieures à Android 13
-            onBackPressedDispatcher.addCallback(this, onBackPressedCallback)
+        onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
+            Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            navigateToPrevScreen()
         }
     }
 
@@ -71,197 +76,247 @@ class PlanActionsActivity : BaseActivity() {
 
         val idMbr = userData.idMbr
         val adrMac = userData.adrMac
-        val idRsd = entrySelect.id
 
         Log.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
 
-        viewModel.setUserCredentials(idMbr, adrMac, idRsd)
+        viewModel.setUserCredentials(idMbr, adrMac, entrySelect)
         viewModel.getPlanActions()
-
-        updateButtonStates()
     }
     override fun setupComponents() {
         setupObservers()
         setupListeners()
     }
     override fun setupObservers() {
-        viewModel.planActions.observe(this, Observer { planActions ->
-            if (planActions != null && planActions.id > 0) {
-                idPlanActions = planActions.id
-                binding.addPlanActionDateTxt.setText(planActions.limit)
-                binding.addPlanActionPlanTxt.setText(planActions.txt)
-
-                updateButtonStates()
-            }
-        })
-
-        viewModel.savePlanActionResult.observe(this, Observer { success ->
-            if (success) {
-                navigateToPrevScreen()
-            } else {
-                showToast("Erreur lors de la sauvegarde du plan d'actions")
-            }
-        })
-
-        viewModel.openCalendarEvent.observe(this, Observer { shouldOpenCalendar ->
-            if (shouldOpenCalendar) {
-                val rsd = getEntrySelected()
-                val date = binding.addPlanActionDateTxt.text.toString()
-                val planText = binding.addPlanActionPlanTxt.text.toString()
-
-                if (rsd != null && date.isNotEmpty() && planText.isNotEmpty()) {
-                    val txt = rsd.ref + " -- " + rsd.name + " -- " + rsd.address + " " + rsd.city
-                    val intent = Intent(Intent.ACTION_INSERT).apply {
-                        data = CalendarContract.Events.CONTENT_URI
-                        putExtra(CalendarContract.Events.TITLE, "Échéance Plan d'actions")
-                        putExtra(CalendarContract.Events.DESCRIPTION, txt)
-                        putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, parseDateToMillis(date))
-                    }
-                    startActivity(intent)
+        viewModel.state.observe(this, Observer { state ->
+            when (state) {
+                is PlanActionsViewModel.PlanActionState.Loading -> {
+                    showLoading(true)
+                }
+                is PlanActionsViewModel.PlanActionState.PlanLoaded -> {
+                    showLoading(false)
+                    handlePlanLoaded(state.plan)
+                }
+                is PlanActionsViewModel.PlanActionState.Success -> {
+                    showLoading(false)
+                    showSuccessMessage(state.message)
+                }
+                is PlanActionsViewModel.PlanActionState.Error -> {
+                    showLoading(false)
+                    showErrorMessage(state.message)
                 }
             }
         })
 
-        viewModel.validatePlanActionResult.observe(this, Observer { success ->
-            if (success) {
-                binding.addPlanActionDateTxt.text.clear() // Vide le champ de la date
-                binding.addPlanActionPlanTxt.text.clear() // Vide le champ du texte
+        viewModel.mode.observe(this, Observer { mode ->
+            updateUIBasedOnMode(mode)
+        })
 
-                val calendar = Calendar.getInstance()
-                calendar.add(Calendar.DAY_OF_MONTH, 1)
-                val formattedDate = String.format(
-                    Locale.FRENCH,
-                    "%02d/%02d/%04d",
-                    calendar.get(Calendar.DAY_OF_MONTH),
-                    calendar.get(Calendar.MONTH) + 1,
-                    calendar.get(Calendar.YEAR)
-                )
-
-                binding.addPlanActionDateTxt.setText(formattedDate)
-
-                idPlanActions = -1
-                updateButtonStates()
-            } else {
-                showToast("Erreur lors de la validation du plan d'actions")
+        viewModel.event.observe(this, Observer { event ->
+            event?.let {
+                when (it) {
+                    is PlanActionsViewModel.PlanActionEvent.NavigateBack -> {
+                        navigateToPrevScreen()
+                    }
+                    is PlanActionsViewModel.PlanActionEvent.OpenCalendar -> {
+                        openCalendarWithReminder()
+                    }
+                    is PlanActionsViewModel.PlanActionEvent.ShowMessage -> {
+                        showToast(it.message)
+                    }
+                    is PlanActionsViewModel.PlanActionEvent.ResetForm -> {
+                        resetForm()
+                    }
+                }
+                viewModel.eventHandled()
             }
         })
 
-        viewModel.errorMessage.observe(this, Observer { errorMessage ->
-            showToast(errorMessage)
+        viewModel.currentPlan.observe(this, Observer { plan ->
+            plan?.let {
+                binding.addPlanActionDateTxt.setText(it.limit)
+                binding.addPlanActionPlanTxt.setText(it.txt)
+            }
         })
     }
     override fun setupListeners() {
         binding.addPlanActionPrevBtn.setOnClickListener {
-            onBackPressedDispatcher.onBackPressed()
+            navigateToPrevScreen()
         }
 
         binding.addPlanActionSaveBtn.setOnClickListener {
-            if (idPlanActions < 0) {
-                val date = binding.addPlanActionDateTxt.text.toString()
-                val planText = binding.addPlanActionPlanTxt.text.toString()
+            val date = binding.addPlanActionDateTxt.text.toString()
+            val planText = binding.addPlanActionPlanTxt.text.toString()
 
+            if (viewModel.mode.value == PlanActionsViewModel.PlanActionMode.CREATION) {
                 if (date.isNotEmpty() && planText.isNotEmpty()) {
-                    viewModel.savePlanAction(idPlanActions, date, planText)
+                    viewModel.savePlanAction(-1, date, planText)
                 } else {
                     showToast("Veuillez remplir tous les champs")
                 }
+            } else {
+                showToast("Impossible de modifier un plan d'actions déjà enregistré")
             }
         }
 
         binding.addPlanActionAlertBtn.setOnClickListener {
-            if (idPlanActions < 0) {
-                val rsd = getEntrySelected()
-                val date = binding.addPlanActionDateTxt.text.toString()
-                val planText = binding.addPlanActionPlanTxt.text.toString()
+            val date = binding.addPlanActionDateTxt.text.toString()
+            val planText = binding.addPlanActionPlanTxt.text.toString()
 
-                if (rsd != null && date.isNotEmpty() && planText.isNotEmpty()) {
-                    viewModel.savePlanActionAndOpenCalendar(idPlanActions, date, planText)
+            if (viewModel.mode.value == PlanActionsViewModel.PlanActionMode.CREATION) {
+                if (date.isNotEmpty() && planText.isNotEmpty()) {
+                    viewModel.savePlanActionAndOpenCalendar(-1, date, planText)
                 } else {
                     showToast("Veuillez remplir tous les champs")
                 }
+            } else {
+                showToast("Impossible de modifier un plan d'actions déjà enregistré")
             }
         }
 
         binding.addPlanActionValidBtn.setOnClickListener {
-            if (idPlanActions > 0) {
-                viewModel.validatePlanAction(idPlanActions)
+            val currentPlan = viewModel.currentPlan.value
+            if (currentPlan != null && currentPlan.id > 0) {
+                viewModel.validatePlanAction(currentPlan.id)
+            } else {
+                showToast("Aucun plan d'actions à lever")
             }
         }
 
         binding.addPlanActionDateTxt.setOnClickListener {
-            if (idPlanActions < 0) {
-                val calendar = Calendar.getInstance()
-                val year = calendar.get(Calendar.YEAR)
-                val month = calendar.get(Calendar.MONTH)
-                val day = calendar.get(Calendar.DAY_OF_MONTH)
-
-                val datePickerDialog = DatePickerDialog(
-                    this,
-                    { _, selectedYear, selectedMonth, selectedDay ->
-                        val formattedDate = String.format(
-                            Locale.FRENCH,
-                            "%02d/%02d/%04d",
-                            selectedDay,
-                            selectedMonth + 1,
-                            selectedYear
-                        )
-                        binding.addPlanActionDateTxt.setText(formattedDate)
-                    },
-                    year,
-                    month,
-                    day
-                )
-                datePickerDialog.show()
+            if (viewModel.mode.value == PlanActionsViewModel.PlanActionMode.CREATION) {
+                showDatePickerDialog()
+            } else {
+                showToast("Impossible de modifier un plan d'actions déjà enregistré")
             }
         }
     }
 
 
 
-    private fun updateButtonStates() {
-        if (idPlanActions < 0) {
-            // Mode création : les boutons "Sauvegarder" et "Ajouter une alerte" sont actifs
-            binding.addPlanActionSaveBtn.isEnabled = true
-            binding.addPlanActionSaveBtn.alpha = 1.0f
-
-            binding.addPlanActionAlertBtn.isEnabled = true
-            binding.addPlanActionAlertBtn.alpha = 1.0f
-
-            // Le bouton "Valider" est désactivé
-            binding.addPlanActionValidBtn.isEnabled = false
-            binding.addPlanActionValidBtn.alpha = 0.5f
-        } else {
-            // Mode édition : le bouton "Valider" est actif
-            binding.addPlanActionValidBtn.isEnabled = true
-            binding.addPlanActionValidBtn.alpha = 1.0f
-
-            // Les boutons "Sauvegarder" et "Ajouter une alerte" sont désactivés
-            binding.addPlanActionSaveBtn.isEnabled = false
-            binding.addPlanActionSaveBtn.alpha = 0.5f
-
-            binding.addPlanActionAlertBtn.isEnabled = false
-            binding.addPlanActionAlertBtn.alpha = 0.5f
+    /**
+     * Traite un plan d'actions chargé.
+     */
+    private fun handlePlanLoaded(plan: ObjPlanActions?) {
+        // Si le plan existe et a un ID, on est en mode édition
+        // Sinon, on est en mode création avec des champs vides
+        if (plan == null) {
+            // Initialiser avec la date du lendemain
+            val calendar = Calendar.getInstance()
+            calendar.add(Calendar.DAY_OF_MONTH, 1)
+            val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale.FRENCH).format(calendar.time)
+            binding.addPlanActionDateTxt.setText(formattedDate)
+            binding.addPlanActionPlanTxt.setText("")
         }
     }
 
+    /**
+     * Réinitialise le formulaire après une levée de plan.
+     */
+    private fun resetForm() {
+        binding.addPlanActionDateTxt.text.clear()
+        binding.addPlanActionPlanTxt.text.clear()
+
+        val calendar = Calendar.getInstance()
+        calendar.add(Calendar.DAY_OF_MONTH, 1)
+        val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale.FRENCH).format(calendar.time)
+
+        binding.addPlanActionDateTxt.setText(formattedDate)
+    }
+
+
+
+    /**
+     * Met à jour l'interface utilisateur en fonction du mode actuel.
+     *
+     * @param mode Mode d'affichage (création ou édition)
+     */
+    private fun updateUIBasedOnMode(mode: PlanActionsViewModel.PlanActionMode) {
+        val creationMode = mode == PlanActionsViewModel.PlanActionMode.CREATION
+
+        with(binding) {
+            // Les boutons de sauvegarde sont actifs uniquement en mode création
+            addPlanActionSaveBtn.isEnabled = creationMode
+            addPlanActionSaveBtn.alpha = if (creationMode) 1.0f else 0.5f
+
+            addPlanActionAlertBtn.isEnabled = creationMode
+            addPlanActionAlertBtn.alpha = if (creationMode) 1.0f else 0.5f
+
+            // Le bouton de levée est actif uniquement en mode édition
+            addPlanActionValidBtn.isEnabled = !creationMode
+            addPlanActionValidBtn.alpha = if (creationMode) 0.5f else 1.0f
+
+            // Les champs de texte sont éditables uniquement en mode création
+            addPlanActionDateTxt.isEnabled = creationMode
+            addPlanActionPlanTxt.isEnabled = creationMode
+        }
+    }
+
+
+
     private fun parseDateToMillis(date: String): Long {
-        val format = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
-        return format.parse(date)?.time ?: System.currentTimeMillis()
+        return try {
+            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).parse(date)?.time
+                ?: System.currentTimeMillis()
+        } catch (e: Exception) {
+            System.currentTimeMillis()
+        }
+    }
+
+    private fun showDatePickerDialog() {
+        val currentDate = binding.addPlanActionDateTxt.text.toString()
+        val calendar = Calendar.getInstance()
+
+        if (currentDate.isNotEmpty()) {
+            try {
+                val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.FRENCH)
+                val date = dateFormat.parse(currentDate)
+                if (date != null) {
+                    calendar.time = date
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Erreur lors du parsing de la date : ${e.message}")
+            }
+        }
+
+        val year = calendar.get(Calendar.YEAR)
+        val month = calendar.get(Calendar.MONTH)
+        val day = calendar.get(Calendar.DAY_OF_MONTH)
+
+        val datePickerDialog = DatePickerDialog(
+            this,
+            { _, selectedYear, selectedMonth, selectedDay ->
+                val formattedDate = String.format(
+                    Locale.FRENCH,
+                    "%02d/%02d/%04d",
+                    selectedDay,
+                    selectedMonth + 1,
+                    selectedYear
+                )
+                binding.addPlanActionDateTxt.setText(formattedDate)
+            },
+            year,
+            month,
+            day
+        )
+        datePickerDialog.show()
     }
 
 
 
     private fun navigateToMainActivity() {
         Log.d(TAG, "Navigating to MainActivity")
-        val intent = Intent(this, MainActivity::class.java)
-        startActivity(intent)
-        finish()
+        Intent(this, LoginActivity::class.java).also {
+            it.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivity(it)
+            finish()
+        }
     }
     private fun navigateToSelectEntryActivity() {
         Log.d(TAG, "Navigating to SelectEntryActivity")
-        val intent = Intent(this, SelectEntryActivity::class.java)
-        startActivity(intent)
-        finish()
+        Intent(this, SelectEntryActivity::class.java).also {
+            startActivity(it)
+            finish()
+        }
     }
     private fun navigateToPrevScreen() {
         Log.d(TAG, "Navigating to activity précédente")
@@ -270,16 +325,74 @@ class PlanActionsActivity : BaseActivity() {
         finish()
     }
 
+    /**
+     * Ouvre le calendrier pour ajouter un rappel.
+     */
+    private fun openCalendarWithReminder() {
+        val rsd = getEntrySelected()
+        val date = binding.addPlanActionDateTxt.text.toString()
+        val planText = binding.addPlanActionPlanTxt.text.toString()
+
+        if (rsd != null && date.isNotEmpty() && planText.isNotEmpty()) {
+            val txt = "${rsd.ref} -- ${rsd.name} -- ${rsd.address} ${rsd.city}"
+            val intent = Intent(Intent.ACTION_INSERT).apply {
+                data = CalendarContract.Events.CONTENT_URI
+                putExtra(CalendarContract.Events.TITLE, "Échéance Plan d'actions")
+                putExtra(CalendarContract.Events.DESCRIPTION, txt)
+                putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, parseDateToMillis(date))
+            }
+            startActivity(intent)
+        }
+    }
+
 
 
     private fun showToast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
-    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
-        override fun handleOnBackPressed() {
-            Log.d(TAG, "handleOnBackPressed: Back Pressed")
-            navigateToPrevScreen()
+    /**
+     * Affiche un message de succès sous forme de Snackbar.
+     *
+     * @param message Le message de succès à afficher
+     */
+    private fun showSuccessMessage(message: String) {
+        UiUtils.showSuccessSnackbar(binding.root, message)
+    }
+
+    /**
+     * Affiche un message d'erreur sous forme de Snackbar.
+     *
+     * @param message Le message d'erreur à afficher
+     */
+    private fun showErrorMessage(message: String) {
+        UiUtils.showErrorSnackbar(binding.root, message)
+    }
+
+    /**
+     * Affiche ou masque l'indicateur de chargement.
+     *
+     * @param isLoading Indique si l'état de chargement est actif
+     */
+    private fun showLoading(isLoading: Boolean) {
+        if (isLoading) {
+            UiUtils.showProgressDialog(
+                this,
+                "Chargement en cours...",
+                "Veuillez patienter",
+                false
+            )
+        } else {
+            UiUtils.dismissCurrentDialog()
+        }
+
+        with(binding) {
+            addPlanActionSaveBtn.isEnabled = !isLoading
+            addPlanActionAlertBtn.isEnabled = !isLoading
+            addPlanActionValidBtn.isEnabled = !isLoading
+            addPlanActionPrevBtn.isEnabled = !isLoading
+            addPlanActionDateTxt.isEnabled = !isLoading
+            addPlanActionPlanTxt.isEnabled = !isLoading
         }
     }
 

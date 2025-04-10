@@ -19,9 +19,10 @@ class ControlPropApplication : Application(), DefaultLifecycleObserver {
     override fun onCreate() {
         super<Application>.onCreate()
 
-        Log.d(TAG, "onCreate: Application started")
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            Log.e("ControlPropApplication", "Uncaught exception in thread $thread", throwable)
+        }
 
-        // Démarrer Koin
         startKoin {
             androidContext(this@ControlPropApplication)
             modules(appModule)
@@ -30,16 +31,9 @@ class ControlPropApplication : Application(), DefaultLifecycleObserver {
         ProcessLifecycleOwner.get().lifecycle.addObserver(this)
     }
 
-    override fun onStop(owner: LifecycleOwner) {
-        super.onStop(owner)
-        Log.d(TAG, "onStop: Application en arrière-plan")
-    }
-
     override fun onDestroy(owner: LifecycleOwner) {
         super.onDestroy(owner)
-        Log.d(TAG, "onDestroy: Application fermée")
 
-        // Supprimer userData lorsque l'application est fermée
         val preferences = getSharedPreferences("ControlProp", MODE_PRIVATE)
         preferences.edit().remove("userData").apply()
     }

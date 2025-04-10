@@ -5,15 +5,22 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import org.json.JSONObject
+import org.orgaprop.controlprop.exceptions.BaseException
+import org.orgaprop.controlprop.exceptions.ErrorCodes
+import org.orgaprop.controlprop.managers.CtrlZoneManager
 import org.orgaprop.controlprop.models.ObjComment
 import org.orgaprop.controlprop.models.ObjCriter
 import org.orgaprop.controlprop.models.ObjElement
 import org.orgaprop.controlprop.models.SelectItem
-import org.orgaprop.controlprop.ui.main.types.LoginData
+import org.orgaprop.controlprop.models.LoginData
 
-class CtrlZoneViewModel : ViewModel() {
+class CtrlZoneViewModel(
+    private val manager: CtrlZoneManager
+) : ViewModel() {
 
-    private val TAG = "CtrlZoneViewModel"
+    companion object {
+        const val TAG = "CtrlZoneViewModel"
+    }
 
     private val _elements = MutableLiveData<List<ObjElement>>()
     val elements: LiveData<List<ObjElement>> = _elements
@@ -24,9 +31,16 @@ class CtrlZoneViewModel : ViewModel() {
     private val _limits = MutableLiveData<Pair<Int, Int>>()
     val limits: LiveData<Pair<Int, Int>> = _limits
 
+    private val _error = MutableLiveData<Pair<Int, String>?>()
+    val error: LiveData<Pair<Int, String>?> = _error
+
+    private val _isLoading = MutableLiveData<Boolean>(false)
+    val isLoading: LiveData<Boolean> = _isLoading
+
     private lateinit var userData: LoginData
-    private var zoneCoef: Int = 1
+    private var zoneId: Int = 1
     private var configCtrl: JSONObject? = null
+    private var entrySelected: SelectItem? = null
 
 
 
@@ -36,6 +50,9 @@ class CtrlZoneViewModel : ViewModel() {
     }
     fun setConfigCtrl(config: JSONObject) {
         this.configCtrl = config
+    }
+    fun setEntrySelected(entry: SelectItem) {
+        this.entrySelected = entry
     }
 
 
@@ -47,137 +64,93 @@ class CtrlZoneViewModel : ViewModel() {
         _limits.value = Pair(max, min)
     }
 
-
-
-    fun loadSavedData(entrySelected: SelectItem, zoneId: Int) {
-        val myTag = "$TAG::loadSavedData"
-        loadZone(zoneId)
-
-        entrySelected.getZoneElements(zoneId)?.let { savedElements ->
-            val currentElements = _elements.value?.toMutableList() ?: mutableListOf()
-
-            Log.d(myTag, "savedElements => $savedElements")
-            Log.d(myTag, "currentElements => $currentElements")
-
-            savedElements.forEach { savedElement ->
-                val currentElement = currentElements.find { it.id == savedElement.id }
-
-                Log.d(myTag, "savedElement => $savedElement")
-                Log.d(myTag, "currentElement => $currentElement")
-
-                currentElement?.let { element ->
-                    element.note = savedElement.note
-
-                    Log.d(myTag, "element.note => ${element.note}")
-
-                    savedElement.criterMap.forEach { (critterId, savedCritter) ->
-                        Log.d(myTag, "savedCritter => $savedCritter")
-
-                        element.criterMap[critterId]?.let { currentCritter ->
-                            Log.d(myTag, "currentCritter => $currentCritter")
-
-                            currentCritter.note = savedCritter.note
-                            currentCritter.comment = savedCritter.comment
-
-                            Log.d(myTag, "newCritter => $currentCritter")
-                        }
-                    }
-                }
-
-                Log.d(myTag, "newElement => $currentElement")
-            }
-
-            _elements.value = currentElements
-        }
-
-        Log.d(myTag, "elements => ${_elements.value}")
-    }
-    fun loadZone(zoneId: Int) {
-        val myTag = "$TAG::loadZone"
-        val structureZone = userData.structure[zoneId.toString()] ?: return
-
-        Log.d(myTag, "StructureZone => $structureZone")
-
-        _zoneName.value = structureZone.name
-
-        _elements.value = structureZone.elmts.mapNotNull { (elementId, element) ->
-            if (element.coef > 0) {
-                ObjElement(
-                    id = elementId.toInt(),
-                    coef = element.coef
-                ).apply {
-                    element.critrs.forEach { (critterId, critter) ->
-                        if (critter.coef > 0) {
-                            this.addCriter(ObjCriter(
-                                id = critterId.toInt(),
-                                coefProduct = zoneCoef * element.coef * critter.coef
-                            ))
-                        }
-                    }
-                }.takeIf { it.criterMap.isNotEmpty() }
-            } else null
-        }
-
-        Log.d(myTag, "Elements => ${_elements.value}")
-    }
-
-    fun updateCritterValue(elementPosition: Int, critterPosition: Int, value: Int) {
-        val currentElements = _elements.value ?: return
-        val updatedElements = currentElements.toMutableList()
-        val element = updatedElements[elementPosition]
-        val critter = element.criterMap[critterPosition] ?: return
-
-        // Mise à jour de la valeur du critère
-        critter.note = value
-
-        // Calcul des sommes
-        var sumValues = 0
-        var sumCoefs = 0
-
-        element.criterMap.values.forEach { c ->
-            Log.d(TAG, "updateCritterValue::c => $c")
-
-            when (c.note) {
-                1 -> {
-                    Log.d(TAG, "updateCritterValue::c.note => 1")
-                    sumValues += c.coefProduct
-                    sumCoefs += c.coefProduct
-                }
-                -1 -> {
-                    Log.d(TAG, "updateCritterValue::c.note => -1")
-                    sumCoefs += c.coefProduct
-                    c.comment = ObjComment("", "")
-                }
-            }
-        }
-
-        // Application de la majoration météo
-        val meteoMajoration = configCtrl?.optString("meteo") == "true"
-        if (meteoMajoration) {
-            sumValues = (sumValues * 1.1).toInt()
-        }
-
-        // Calcul final de la note
-        element.note = if (sumCoefs > 0) {
-            ((sumValues.toDouble() / sumCoefs) * 100).toInt()
-        } else {
-            0
-        }
-
-        _elements.value = updatedElements
-    }
-    fun updateCritterComment(elementIndex: Int, critterIndex: Int, comment: String, imagePath: String) {
-        val currentElements = _elements.value ?: return
-        val updatedElements = currentElements.toMutableList()
-
-        updatedElements[elementIndex].criterMap[critterIndex]?.let { critter ->
-            critter.comment = ObjComment(comment, imagePath)
-            _elements.value = updatedElements
-        }
-    }
-
     fun getControlledElements(): List<ObjElement> {
         return elements.value ?: emptyList()
     }
+
+
+
+    fun loadZone(zoneId: Int) {
+        this.zoneId = zoneId
+        _isLoading.value = true
+
+        try {
+            if (!::userData.isInitialized) {
+                throw BaseException(ErrorCodes.INVALID_DATA, "Données utilisateur non initialisées")
+            }
+
+            val entryData = entrySelected ?: throw BaseException(ErrorCodes.INVALID_DATA, "Aucune entrée sélectionnée")
+
+            val (name, elements) = manager.loadZoneData(userData, entryData, zoneId)
+
+            _zoneName.value = name
+            _elements.value = elements
+
+            Log.d(TAG, "loadZone: Loaded ${elements.size} elements for zone $zoneId")
+
+            _isLoading.value = false
+        } catch (e: BaseException) {
+            _isLoading.value = false
+            Log.e(TAG, "Error in loadZone: ${e.message}", e)
+            _error.value = Pair(e.code, e.message ?: ErrorCodes.getMessageForCode(e.code))
+        } catch (e: Exception) {
+            _isLoading.value = false
+            Log.e(TAG, "Unexpected error in loadZone", e)
+            _error.value = Pair(ErrorCodes.UNKNOWN_ERROR, "Erreur lors du chargement de la zone")
+        }
+    }
+
+    fun updateCritterValue(elementPosition: Int, critterPosition: Int, value: Int) {
+        try {
+            val currentElements = _elements.value ?: throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Aucun élément chargé")
+            val meteoMajoration = configCtrl?.optString("meteo") == "true"
+            val updatedElements = manager.updateCritterValue(
+                currentElements,
+                elementPosition,
+                critterPosition,
+                value,
+                meteoMajoration
+            )
+
+            _elements.value = updatedElements
+
+            Log.d(TAG, "updateCritterValue: Updated critter at element $elementPosition, position $critterPosition to $value")
+        } catch (e: BaseException) {
+            Log.e(TAG, "Error in updateCritterValue: ${e.message}", e)
+            _error.value = Pair(e.code, e.message ?: ErrorCodes.getMessageForCode(e.code))
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error in updateCritterValue", e)
+            _error.value = Pair(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de la mise à jour du critère")
+        }
+    }
+    fun updateCritterComment(elementIndex: Int, critterIndex: Int, comment: String, imagePath: String) {
+        try {
+            val currentElements = _elements.value ?: throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Aucun élément chargé")
+            val updatedElements = manager.updateCritterComment(
+                currentElements,
+                elementIndex,
+                critterIndex,
+                comment,
+                imagePath
+            )
+
+            _elements.value = updatedElements
+
+            Log.d(TAG, "updateCritterComment: Updated comment for element $elementIndex, critter $critterIndex")
+        } catch (e: BaseException) {
+            Log.e(TAG, "Error in updateCritterComment: ${e.message}", e)
+            _error.value = Pair(e.code, e.message ?: ErrorCodes.getMessageForCode(e.code))
+        } catch (e: Exception) {
+            Log.e(TAG, "Unexpected error in updateCritterComment", e)
+            _error.value = Pair(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de la mise à jour du commentaire")
+        }
+    }
+
+
+
+    fun clearError() {
+        _error.value = null
+    }
+
 
 }

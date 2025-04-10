@@ -1,188 +1,191 @@
 package org.orgaprop.controlprop.ui.main
 
+import android.annotation.SuppressLint
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.util.Log
-import android.view.View
 import android.widget.Toast
 
-import androidx.lifecycle.Observer
-
-import org.koin.androidx.viewmodel.ext.android.viewModel
+import androidx.activity.viewModels
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 import org.orgaprop.controlprop.R
-import org.orgaprop.controlprop.databinding.ActivityMainBinding
-
-import org.orgaprop.controlprop.ui.BaseActivity
-import org.orgaprop.controlprop.ui.getMail.GetMailActivity
-import org.orgaprop.controlprop.ui.main.types.LoginData
-import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
+import org.orgaprop.controlprop.exceptions.BaseException
+import org.orgaprop.controlprop.exceptions.ErrorCodes
+import org.orgaprop.controlprop.ui.login.LoginActivity
+import org.orgaprop.controlprop.managers.PermissionManager
+import org.orgaprop.controlprop.managers.UpdateManager
+import org.orgaprop.controlprop.ui.main.inteface.MainEvent
 import org.orgaprop.controlprop.viewmodels.MainViewModel
 
+@SuppressLint("CustomSplashScreen")
+class MainActivity : AppCompatActivity() {
 
-class MainActivity : BaseActivity() {
+    private val viewModel: MainViewModel by viewModels()
 
-    private val TAG = "MainActivity"
+    private lateinit var permissionManager: PermissionManager
+    private lateinit var updateManager: UpdateManager
 
-    private lateinit var binding: ActivityMainBinding
-    private val viewModel: MainViewModel by viewModel()
+    private var isInitializationComplete = false
+
+    companion object {
+        const val TAG = "LaunchActivity"
+    }
 
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        splashScreen.setKeepOnScreenCondition { !isInitializationComplete }
+
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "onCreate: Activité créée")
+
+        initializeComponents()
+        observeViewModel()
+        checkPermissionsAndUpdate()
     }
 
-
-
-    override fun initializeComponents() {
-        binding = ActivityMainBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+    private fun initializeComponents() {
+        try {
+            permissionManager = PermissionManager(this)
+            updateManager = UpdateManager(this)
+            updateManager.initializeLauncher(::handleUpdateResult)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to initialize components", e)
+            showError("Failed to initialize components")
+            completeInitialization()
+            viewModel.navigateToMain()
+        }
     }
-    override fun setupComponents() {
-        setupObservers()
-        setupListeners()
-        checkUserLoggedIn()
-    }
-    override fun setupObservers() {
-        viewModel.loginState.observe(this, Observer { state ->
-            when (state) {
-                is MainViewModel.LoginState.Loading -> showWait(true)
-                is MainViewModel.LoginState.Success -> launchSelectEntryActivity(state.data)
-                is MainViewModel.LoginState.LoggedOut -> clearLoginData()
-                is MainViewModel.LoginState.Error -> showError(state.message)
-            }
-        })
-        viewModel.logoutState.observe(this, Observer { state ->
-            when (state) {
-                is MainViewModel.LogoutState.Loading -> showWait(true)
-                is MainViewModel.LogoutState.Success -> {
-                    clearLoginData()
-                    finishAffinity()
-                }
-                is MainViewModel.LogoutState.Error -> {
-                    showError(state.message)
-                    clearUserData()
-                    finishAffinity()
+    private fun observeViewModel() {
+        lifecycleScope.launch {
+            viewModel.events.collect { event ->
+                when (event) {
+                    is MainEvent.NavigateToMain -> navigateToMain()
+                    is MainEvent.ShowError -> showError(event.message)
                 }
             }
-        })
-    }
-    override fun setupListeners() {
-        binding.mainActivityRgpdTxt.setOnClickListener {
-            openWebPage()
         }
-        binding.mainActivityMailBtn.setOnClickListener {
-            val intent = Intent(this, GetMailActivity::class.java)
-            startActivity(intent)
-        }
-        binding.mainActivityConnectBtn.setOnClickListener {
-            val check = binding.mainActivityRgpdChx.isChecked
-            val username = binding.mainActivityUsernameTxt.text.toString()
-            val password = binding.mainActivityPasswordTxt.text.toString()
 
-            if (!check) {
-                showError(getString(R.string.error_rgpd))
-                return@setOnClickListener
+        Log.d(TAG, "observed")
+    }
+
+
+
+    private fun checkPermissionsAndUpdate() {
+        permissionManager.checkRequiredPermissions(object : PermissionManager.PermissionResultCallback {
+            override fun onResult(granted: Boolean) {
+                if (granted) {
+                    Log.d(TAG, "Permission granted")
+                    startUpdateCheck()
+                } else {
+                    showError(getString(R.string.error_permission_denied))
+                    completeInitialization()
+                }
             }
 
-            viewModel.login(username, password)
-        }
-        binding.mainActivityDecoBtn.setOnClickListener {
-            val userData = getUserData()
+            override fun onError(e: Exception) {
+                showError(e.message ?: "Erreur inconnue")
+                completeInitialization()
+            }
+        })
+    }
 
-            if (userData != null) {
-                viewModel.logout(userData.idMbr, userData.adrMac)
+
+
+    private fun startUpdateCheck() {
+        try {
+            if (isFromPlayStore()) {
+                updateManager.checkForUpdates(
+                    onNoUpdate = {
+                        completeInitialization()
+                        viewModel.navigateToMain()
+                    },
+                    onError = {
+                        showError(getString(R.string.error_update_check))
+                        completeInitialization()
+                        viewModel.navigateToMain()
+                    }
+                )
             } else {
-                showError("Aucune donnée utilisateur trouvée. Veuillez vous reconnecter.")
+                completeInitialization()
+                viewModel.navigateToMain()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error during update check", e)
+            showError(getString(R.string.error_update_check))
+            completeInitialization()
+            viewModel.navigateToMain()
+        }
+    }
+    private fun handleUpdateResult(success: Boolean) {
+        if (success) {
+            completeInitialization()
+            viewModel.navigateToMain()
+        } else {
+            updateManager.checkUpdateCriticality { isCritical ->
+                if (isCritical) {
+                    completeInitialization()
+                    showCriticalUpdateDialog()
+                } else {
+                    showUpdateWarning()
+                    completeInitialization()
+                    viewModel.navigateToMain()
+                }
             }
         }
     }
-
-
-
-    private fun launchSelectEntryActivity(data: LoginData) {
-        Toast.makeText(this, "Connexion réussie", Toast.LENGTH_SHORT).show()
-
-        val username = binding.mainActivityUsernameTxt.text.toString()
-        val password = binding.mainActivityPasswordTxt.text.toString()
-
-        setUserData(data, username, password)
-        showWait(false)
-
-        val intent = Intent(this, SelectEntryActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
-        }
-        startActivity(intent)
-        finish()
+    private fun showCriticalUpdateDialog() {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.update_critical_title)
+            .setMessage(R.string.update_critical_message)
+            .setCancelable(false)
+            .setPositiveButton(R.string.retry) { _, _ ->
+                startUpdateCheck()
+            }
+            .setNegativeButton(R.string.quit) { _, _ ->
+                finish()
+            }
+            .show()
     }
-
-
-
-    private fun clearLoginData() {
-        clearUserData()
-
-        binding.mainActivityUsernameTxt.text.clear()
-        binding.mainActivityPasswordTxt.text.clear()
-
-        showWait(false)
-
-        Toast.makeText(this, "Déconnexion réussie", Toast.LENGTH_SHORT).show()
+    private fun showUpdateWarning() {
+        Toast.makeText(this, R.string.update_warning_message, Toast.LENGTH_LONG).show()
     }
-
-    private fun loadSavedCredentials() {
-        val username = getUsername()
-        val password = getPassword()
-        val adrMac = getAdrMac()
-
-        Log.d(TAG, "loadSavedCredentials: Username: $username, Password: $password")
-
-        if (username != null && password != null && adrMac != null) {
-            binding.mainActivityUsernameTxt.setText(username)
-            binding.mainActivityPasswordTxt.setText(password)
-            viewModel.checkLogin(username, password, adrMac)
-        }
-    }
-    private fun checkUserLoggedIn() {
-        val userData = getUserData()
-
-        if (userData != null) {
-            Log.d(TAG, "checkUserLoggedIn: L'utilisateur est déjà connecté")
-            binding.mainActivityConnectLyt.visibility = View.GONE
-            binding.mainActivityDecoLyt.visibility = View.VISIBLE
-        } else {
-            Log.d(TAG, "checkUserLoggedIn: L'utilisateur n'est pas connecté")
-            binding.mainActivityConnectLyt.visibility = View.VISIBLE
-            binding.mainActivityDecoLyt.visibility = View.GONE
-
-            Log.d(TAG, "checkUserLoggedIn: Load saved credentials")
-            loadSavedCredentials()
+    private fun isFromPlayStore(): Boolean {
+        return try {
+            val installSourceInfo = packageManager.getInstallSourceInfo(packageName)
+            installSourceInfo.installingPackageName == "com.android.vending"
+        } catch (e: Exception) {
+            Log.e(TAG, "Erreur lors de la vérification de la source d'installation", e)
+            false
         }
     }
 
 
 
-    private fun showWait(show: Boolean) {
-        if (show) {
-            binding.mainActivityWaitImg.visibility = View.VISIBLE
-        } else {
-            binding.mainActivityWaitImg.visibility = View.GONE
+    private fun completeInitialization() {
+        isInitializationComplete = true
+    }
+    private fun navigateToMain() {
+        try {
+            Log.d(TAG, "navigateToMain: Navigating to LoginActivity")
+            startActivity(Intent(this, LoginActivity::class.java))
+            finish()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to navigate to LoginActivity", e)
+            showError("Failed to navigate to LoginActivity")
+            finish()
         }
     }
+
+
+
     private fun showError(message: String) {
-        if( message != "" )
-            Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-
-        showWait(false)
-    }
-
-
-    private fun openWebPage() {
-        val url = "https://www.orgaprop.org/ress/protectDonneesPersonnelles.html"
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-        startActivity(intent)
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
 }
