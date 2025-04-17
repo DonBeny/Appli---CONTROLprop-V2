@@ -9,6 +9,7 @@ import org.orgaprop.controlprop.models.ObjComment
 import org.orgaprop.controlprop.models.ObjCriter
 import org.orgaprop.controlprop.models.ObjElement
 import org.orgaprop.controlprop.models.SelectItem
+import org.orgaprop.controlprop.utils.LogUtils
 
 class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
 
@@ -26,40 +27,51 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
      * @param zoneId L'ID de la zone à charger
      * @return Une paire contenant le nom de la zone et les éléments chargés
      */
-    fun loadZoneData(userData: LoginData, entrySelected: SelectItem, zoneId: Int): Pair<String, List<ObjElement>> {
-        Log.d(TAG, "loadZoneData: Loading data for zone $zoneId")
+     fun loadZoneData(userData: LoginData, entrySelected: SelectItem, zoneId: Int): Pair<String, List<ObjElement>> {
+        LogUtils.d(TAG, "loadZoneData: Loading data for zone $zoneId")
 
         try {
             val structureZone = userData.structure[zoneId.toString()]
                 ?: throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Zone $zoneId non trouvée dans la structure")
 
             val zoneName = structureZone.name
-            Log.d(TAG, "loadZoneData: Zone name: $zoneName")
+            LogUtils.d(TAG, "loadZoneData: Zone name: $zoneName")
 
             val elements = structureZone.elmts.mapNotNull { (elementId, element) ->
+                LogUtils.json(TAG, "loadZoneData: Processing element $elementId", element)
+
                 if (element.coef > 0) {
+                    LogUtils.d(TAG, "loadZoneData: Adding element $elementId to elements list")
+
                     ObjElement(
                         id = elementId.toInt(),
                         coef = element.coef
                     ).apply {
                         element.critrs.forEach { (critterId, critter) ->
+                            LogUtils.json(TAG, "loadZoneData: Processing critter $critterId", critter)
+
                             if (critter.coef > 0) {
+                                LogUtils.d(TAG, "loadZoneData: Adding critter $critterId to criter map")
+
                                 this.addCriter(
                                     ObjCriter(
-                                    id = critterId.toInt(),
-                                    coefProduct = element.coef * critter.coef
-                                )
+                                        id = critterId.toInt(),
+                                        coefProduct = element.coef * critter.coef
+                                    )
                                 )
                             }
                         }
                     }.takeIf { it.criterMap.isNotEmpty() }
                 } else null
             }
+            LogUtils.json(TAG, "loadZoneData: Elements list size: ${elements.size}", elements)
 
             val savedElements = entrySelected.getZoneElements(zoneId)
 
+            LogUtils.json(TAG, "loadZoneData: Saved elements", savedElements)
+
             if (savedElements != null) {
-                Log.d(TAG, "loadZoneData: Found saved elements for zone $zoneId")
+                LogUtils.d(TAG, "loadZoneData: Found saved elements for zone $zoneId")
                 elements.forEach { element ->
                     savedElements.find { it.id == element.id }?.let { savedElement ->
                         element.note = savedElement.note
@@ -76,10 +88,10 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
 
             return Pair(zoneName, elements)
         } catch (e: BaseException) {
-            Log.e(TAG, "Error in loadZoneData: ${e.message}", e)
+            LogUtils.e(TAG, "Error in loadZoneData: ${e.message}", e)
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error in loadZoneData", e)
+            LogUtils.e(TAG, "Unexpected error in loadZoneData", e)
             throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors du chargement des données de la zone", e)
         }
     }
@@ -95,17 +107,24 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
         try {
             var sumValues = 0
             var sumCoefs = 0
+            var hasEvaluatedCriteria = false
 
             element.criterMap.values.forEach { critter ->
                 when (critter.note) {
                     1 -> {
+                        hasEvaluatedCriteria = true
                         sumValues += critter.coefProduct
                         sumCoefs += critter.coefProduct
                     }
                     -1 -> {
+                        hasEvaluatedCriteria = true
                         sumCoefs += critter.coefProduct
                     }
                 }
+            }
+
+            if (!hasEvaluatedCriteria) {
+                return -1
             }
 
             if (meteoMajoration && sumValues > 0) {
@@ -118,7 +137,7 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
                 0
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error calculating element note", e)
+            LogUtils.e(TAG, "Error calculating element note", e)
             return 0
         }
     }
@@ -140,7 +159,7 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
         value: Int,
         meteoMajoration: Boolean
     ): List<ObjElement> {
-        Log.d(TAG, "updateCritterValue: Updating element $elementPosition, critter $critterPosition to value $value")
+        LogUtils.d(TAG, "updateCritterValue: Updating element $elementPosition, critter $critterPosition to value $value")
 
         try {
             if (elementPosition >= elements.size) {
@@ -162,10 +181,10 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
 
             return updatedElements
         } catch (e: BaseException) {
-            Log.e(TAG, "Error in updateCritterValue: ${e.message}", e)
+            LogUtils.e(TAG, "Error in updateCritterValue: ${e.message}", e)
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error in updateCritterValue", e)
+            LogUtils.e(TAG, "Unexpected error in updateCritterValue", e)
             throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de la mise à jour du critère", e)
         }
     }
@@ -187,7 +206,7 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
         comment: String,
         imagePath: String
     ): List<ObjElement> {
-        Log.d(TAG, "updateCritterComment: Updating comment for element $elementIndex, critter $critterIndex")
+        LogUtils.d(TAG, "updateCritterComment: Updating comment for element $elementIndex, critter $critterIndex")
 
         try {
             if (elementIndex >= elements.size) {
@@ -203,10 +222,10 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
 
             return updatedElements
         } catch (e: BaseException) {
-            Log.e(TAG, "Error in updateCritterComment: ${e.message}", e)
+            LogUtils.e(TAG, "Error in updateCritterComment: ${e.message}", e)
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Unexpected error in updateCritterComment", e)
+            LogUtils.e(TAG, "Unexpected error in updateCritterComment", e)
             throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de la mise à jour du commentaire", e)
         }
     }

@@ -1,8 +1,10 @@
 package org.orgaprop.controlprop.ui.selectEntry
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import android.window.OnBackInvokedDispatcher
 
@@ -19,6 +21,7 @@ import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.config.TypeCtrlActivity
 import org.orgaprop.controlprop.ui.login.LoginActivity
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.utils.extentions.getParcelableCompat
 import org.orgaprop.controlprop.viewmodels.SelectEntryViewModel
@@ -33,18 +36,17 @@ class SelectEntryActivity : BaseActivity() {
     private val viewModel: SelectEntryViewModel by viewModel()
 
     private val activityLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        Log.d(TAG, "selectionLauncher: Result code: ${result.resultCode}")
+        LogUtils.d(TAG, "selectionLauncher: Result code: ${result.resultCode}")
 
         if (result.resultCode == RESULT_OK) {
-            Log.d(TAG, "selectionLauncher: Result data: ${result.data}")
+            LogUtils.d(TAG, "selectionLauncher: Result data: ${result.data}")
 
             val data = result.data
             val selectedItem = data?.extras?.getParcelableCompat<SelectItem>(SelectListActivity.SELECT_LIST_RETURN)
 
-            Log.d(TAG, "selectionLauncher: Selected item: $selectedItem")
+            LogUtils.d(TAG, "selectionLauncher: Selected item: $selectedItem")
 
             selectedItem?.let { item ->
-                // Créer une copie modifiée de l'item avec la date mise à jour
                 val updatedItem = item.copy(
                     prop = item.prop?.copy(
                         ctrl = item.prop.ctrl.copy(
@@ -55,8 +57,10 @@ class SelectEntryActivity : BaseActivity() {
                     )
                 )
 
-                Log.d(TAG, "selectionLauncher: Updated item with timestamp: $updatedItem")
+                LogUtils.d(TAG, "selectionLauncher: Updated item with timestamp: $updatedItem")
+
                 viewModel.handleSelectedItem(updatedItem)
+                setEntrySelected(updatedItem)
             }
         }
     }
@@ -69,7 +73,7 @@ class SelectEntryActivity : BaseActivity() {
         onBackInvokedDispatcher.registerOnBackInvokedCallback(
             OnBackInvokedDispatcher.PRIORITY_DEFAULT
         ) {
-            Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            LogUtils.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
             navigateToPrevScreen()
         }
     }
@@ -83,7 +87,7 @@ class SelectEntryActivity : BaseActivity() {
         val userData = getUserData()
 
         if( userData == null ) {
-            Log.d(TAG, "initializeComponents: UserData is null")
+            LogUtils.d(TAG, "initializeComponents: UserData is null")
             navigateToPrevScreen()
             return
         }
@@ -91,14 +95,14 @@ class SelectEntryActivity : BaseActivity() {
         val idMbr = userData.idMbr
         val adrMac = userData.adrMac
 
-        Log.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
+        LogUtils.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
 
         viewModel.setUserCredentials(idMbr, adrMac)
 
         val hasContrat = userData.hasContract
         binding.selectEntryContraChk.isEnabled = hasContrat
 
-        Log.d(TAG, "initializeComponents: hasContrat: $hasContrat")
+        LogUtils.d(TAG, "initializeComponents: hasContrat: $hasContrat")
 
         if (!hasContrat) {
             binding.selectEntryContraChk.isChecked = false
@@ -114,13 +118,13 @@ class SelectEntryActivity : BaseActivity() {
     override fun setupListeners() {
         // Bouton Précédent
         binding.selectEntryPrevBtn.setOnClickListener {
-            Log.d(TAG, "setupListeners: PrevBtn pressed")
+            LogUtils.d(TAG, "setupListeners: PrevBtn pressed")
             navigateToPrevScreen()
         }
 
         // Bouton Déconnexion
         binding.selectEntryDecoBtn.setOnClickListener {
-            Log.d(TAG, "setupListeners: DecoBtn pressed")
+            LogUtils.d(TAG, "setupListeners: DecoBtn pressed")
             viewModel.onLogoutButtonClicked()
         }
 
@@ -260,7 +264,7 @@ class SelectEntryActivity : BaseActivity() {
         }
     }
     private fun navigateToPrevScreen() {
-        Log.d(TAG, "navigateToMainActivity: Navigating to MainActivity")
+        LogUtils.d(TAG, "navigateToMainActivity: Navigating to MainActivity")
         val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -268,15 +272,18 @@ class SelectEntryActivity : BaseActivity() {
         finish()
     }
     private fun navigateToNextScreen() {
-        Log.d(TAG, "navigateToNextScreen: Navigating to Next Screen")
+        LogUtils.d(TAG, "navigateToNextScreen: Navigating to Next Screen")
 
         val selectedEntry = getEntrySelected()
-        val entryList = getEntryList()
         val proxi = viewModel.isProximityChecked.value ?: false
         val contract = viewModel.isContractChecked.value ?: false
         val optionsSelected = proxi || contract
 
-        if (selectedEntry != null && entryList != null && optionsSelected) {
+        LogUtils.json(TAG, "navigateToNextScreen: selectedEntry:", selectedEntry)
+        LogUtils.d(TAG, "navigateToNextScreen: proxi: $proxi")
+        LogUtils.d(TAG, "navigateToNextScreen: contract: $contract")
+
+        if (selectedEntry != null && optionsSelected) {
             setProxi(proxi)
             setContract(contract)
 
@@ -286,14 +293,14 @@ class SelectEntryActivity : BaseActivity() {
 
             startActivity(intent)
         } else {
-            Log.e(TAG, "navigateToNextScreen: Données manquantes (selectedEntry ou entryList ou Chekbox)")
+            Log.e(TAG, "navigateToNextScreen: Données manquantes (selectedEntry ou Chekbox)")
 
             if (!optionsSelected) {
                 UiUtils.showErrorSnackbar(
                     binding.root,
                     "Veuillez sélectionner au moins une option (Proximité ou Contrat)"
                 )
-            } else if (selectedEntry == null) {
+            } else {
                 UiUtils.showErrorSnackbar(
                     binding.root,
                     "Veuillez sélectionner une entrée"

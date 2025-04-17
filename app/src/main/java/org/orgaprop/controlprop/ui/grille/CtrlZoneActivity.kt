@@ -10,14 +10,17 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.window.OnBackInvokedDispatcher
-import androidx.activity.OnBackPressedCallback
+
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModelProvider
+
 import com.google.gson.Gson
+
 import org.json.JSONObject
+import org.koin.androidx.viewmodel.ext.android.viewModel
+
 import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.databinding.ActivityCtrlZoneBinding
 import org.orgaprop.controlprop.models.ObjElement
@@ -25,19 +28,20 @@ import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.models.LoginData
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.viewmodels.CtrlZoneViewModel
 
 class CtrlZoneActivity : BaseActivity() {
 
     private lateinit var binding: ActivityCtrlZoneBinding
-    private lateinit var viewModel: CtrlZoneViewModel
-    private lateinit var user: LoginData
-
-    private var zoneId = -1
-    private lateinit var entrySelected: SelectItem
+    private val viewModel: CtrlZoneViewModel by viewModel()
 
     private var progressDialog: AlertDialog? = null
+
+    private lateinit var user: LoginData
+    private var zoneId = -1
+    private lateinit var entrySelected: SelectItem
 
     companion object {
         const val TAG = "CtrlZoneActivity"
@@ -99,10 +103,10 @@ class CtrlZoneActivity : BaseActivity() {
                 val commentText = intent.getStringExtra(AddCommentActivity.ADD_COMMENT_ACTIVITY_EXTRA_COMMENT_TEXT) ?: ""
                 val imagePath = intent.getStringExtra(AddCommentActivity.ADD_COMMENT_ACTIVITY_EXTRA_COMMENT_IMAGE) ?: ""
 
-                Log.d(TAG, "addCommentLauncher::elementIndex => $elementIndex")
-                Log.d(TAG, "addCommentLauncher::critterIndex => $critterIndex")
-                Log.d(TAG, "addCommentLauncher::commentText => $commentText")
-                Log.d(TAG, "addCommentLauncher::imagePath => $imagePath")
+                LogUtils.d(TAG, "addCommentLauncher::elementIndex => $elementIndex")
+                LogUtils.d(TAG, "addCommentLauncher::critterIndex => $critterIndex")
+                LogUtils.d(TAG, "addCommentLauncher::commentText => $commentText")
+                LogUtils.d(TAG, "addCommentLauncher::imagePath => $imagePath")
 
                 if (elementIndex != -1 && critterIndex != -1) {
                     viewModel.updateCritterComment(elementIndex, critterIndex, commentText, imagePath)
@@ -117,59 +121,34 @@ class CtrlZoneActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
-            Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            LogUtils.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
             navigateToPrevScreen()
         }
     }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        progressDialog?.dismiss()
-        progressDialog = null
-    }
-
-
 
     override fun initializeComponents() {
         binding = ActivityCtrlZoneBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        try {
-            getUserData()?.let { userData ->
-                user = userData
-                viewModel.setUserData(user)
+        getUserData()?.let { userData ->
+            user = userData
+            viewModel.setUserData(user)
+            zoneId = intent.getIntExtra(CTRL_ZONE_ACTIVITY_EXTRA_ZONE_ID, -1)
 
-                zoneId = intent.getIntExtra(CTRL_ZONE_ACTIVITY_EXTRA_ZONE_ID, -1)
-                if (zoneId == -1) {
-                    Log.e(TAG, "initializeComponents: Zone ID is missing")
-                    showErrorMessage("Zone non spécifiée")
-                    navigateToPrevScreen()
-                    return
-                }
-
-                viewModel.setConfigCtrl(getConfigCtrl() ?: JSONObject())
-
-            } ?: run {
-                Log.e(TAG, "initializeComponents: User data is null")
-                navigateToMainActivity()
+            if (zoneId == -1) {
+                navigateToPrevScreen()
                 return
             }
 
-            getEntrySelected()?.let {
-                entrySelected = it
-                viewModel.setEntrySelected(it)
+            viewModel.setConfigCtrl(getConfigCtrl() ?: JSONObject())
+        } ?: run {
+            navigateToMainActivity()
+        }
 
-                viewModel.loadZone(zoneId)
-            } ?: run {
-                Log.e(TAG, "initializeComponents: Selected entry is null")
-                showErrorMessage("Entrée non sélectionnée")
-                setResult(RESULT_CANCELED)
-                finish()
-                return
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "initializeComponents: Unexpected error", e)
-            showErrorMessage("Erreur lors de l'initialisation")
+        getEntrySelected()?.let {
+            entrySelected = it
+            viewModel.loadSavedData(entrySelected, zoneId)
+        } ?: run {
             setResult(RESULT_CANCELED)
             finish()
         }
@@ -180,7 +159,7 @@ class CtrlZoneActivity : BaseActivity() {
         setupZoneIcon()
     }
     override fun setupObservers() {
-        Log.d(TAG, "setupObservers: Setting up observers")
+        LogUtils.d(TAG, "setupObservers: Setting up observers")
 
         viewModel.elements.observe(this) { elements ->
             elements?.let { createElementsViews(it) }
@@ -189,20 +168,9 @@ class CtrlZoneActivity : BaseActivity() {
         viewModel.zoneName.observe(this) { name ->
             binding.ctrlZoneActivityTitleZoneLbl.text = name
         }
-
-        viewModel.isLoading.observe(this) { isLoading ->
-            showLoading(isLoading)
-        }
-
-        viewModel.error.observe(this) { errorData ->
-            errorData?.let { (code, message) ->
-                showErrorMessage(message)
-                viewModel.clearError()
-            }
-        }
     }
     override fun setupListeners() {
-        Log.d(TAG, "setupListeners: Setting up listeners")
+        LogUtils.d(TAG, "setupListeners: Setting up listeners")
 
         binding.ctrlZoneActivityPrevBtn.setOnClickListener {
             navigateToPrevScreen()
@@ -217,6 +185,8 @@ class CtrlZoneActivity : BaseActivity() {
         } ?: run {
             binding.ctrlZoneActivityTitleZoneImg.setImageResource(R.drawable.localisation_blanc)
         }
+
+        //viewModel.loadZone(zoneId)
     }
     @SuppressLint("InflateParams")
     private fun createElementsViews(elements: List<ObjElement>) {
@@ -323,36 +293,17 @@ class CtrlZoneActivity : BaseActivity() {
         critterIndex: Int,
         value: Int
     ) {
-        try {
-            Log.d(TAG, "handleCritterClick: Element $elementIndex, Critter $critterIndex, Value $value")
-
-            val isSelected = clickedButton.tag == "1"
-            val newValue = if (isSelected) 0 else value
-
-            viewModel.updateCritterValue(elementIndex, critterIndex, newValue)
-
-            updateButtonState(clickedButton, otherButton, commentButton, elementIndex, critterIndex, newValue)
-        } catch (e: Exception) {
-            Log.e(TAG, "handleCritterClick: Error updating critter value", e)
-            showErrorMessage("Erreur lors de la mise à jour du critère")
-        }
-    }
-
-    private fun updateButtonState(
-        clickedButton: Button,
-        otherButton: Button,
-        commentButton: ImageButton,
-        elementIndex: Int,
-        critterIndex: Int,
-        value: Int
-    ) {
-        otherButton.setBackgroundResource(R.drawable.button_desabled)
-        otherButton.tag = "0"
-
         val critter = viewModel.elements.value?.get(elementIndex)?.criterMap?.get(critterIndex)
         val hasComment = !critter?.comment?.txt.isNullOrEmpty()
 
-        if (value != 0) {
+        otherButton.setBackgroundResource(R.drawable.button_desabled)
+        otherButton.tag = "0"
+
+        LogUtils.d(TAG, "handleCritterClick::elementIndex => $elementIndex")
+        LogUtils.d(TAG, "handleCritterClick::critterIndex => $critterIndex")
+        LogUtils.d(TAG, "handleCritterClick::value => $value")
+
+        if (clickedButton.tag == "0") {
             clickedButton.setBackgroundResource(
                 if (value > 0) R.drawable.button_selected_green else R.drawable.button_selected_red
             )
@@ -361,9 +312,11 @@ class CtrlZoneActivity : BaseActivity() {
             commentButton.isEnabled = (value == -1)
             commentButton.alpha = if (value == -1) 1.0f else 0.5f
             commentButton.setBackgroundResource(
-                if (value == -1 && hasComment) R.drawable.button_selected_green
+                if (value == 1 && hasComment) R.drawable.button_selected_green
                 else R.drawable.button_desabled
             )
+
+            viewModel.updateCritterValue(elementIndex, critterIndex, value)
         } else {
             clickedButton.setBackgroundResource(R.drawable.button_desabled)
             clickedButton.tag = "0"
@@ -371,6 +324,8 @@ class CtrlZoneActivity : BaseActivity() {
             commentButton.isEnabled = false
             commentButton.alpha = 0.5f
             commentButton.setBackgroundResource(R.drawable.button_desabled)
+
+            viewModel.updateCritterValue(elementIndex, critterIndex, 0)
         }
     }
 
@@ -405,58 +360,26 @@ class CtrlZoneActivity : BaseActivity() {
 
 
 
-    private fun showLoading(show: Boolean) {
-        if (show) {
-            progressDialog?.dismiss()
-            progressDialog = UiUtils.showProgressDialog(
-                this,
-                "Chargement de la zone...",
-                cancelable = false
-            )
-        } else {
-            progressDialog?.dismiss()
-            progressDialog = null
-        }
-    }
-
-    private fun showErrorMessage(message: String) {
-        UiUtils.showErrorSnackbar(
-            binding.root,
-            message,
-            actionText = "OK",
-            action = { /* Rien à faire ici */ }
-        )
-    }
-
-
-
     private fun navigateToPrevScreen() {
-        Log.d(TAG, "Navigating to previous screen with controlled elements")
+        LogUtils.d(TAG, "Navigating to previous screen with controlled elements")
 
-        try {
-            val resultIntent = Intent().apply {
-                val controlledElements = viewModel.getControlledElements()
-                val jsonString = Gson().toJson(controlledElements)
+        val resultIntent = Intent().apply {
+            val controlledElements = viewModel.getControlledElements()
+            val jsonString = Gson().toJson(controlledElements)
 
-                Log.d(TAG, "navigateToPrevScreen: Returning ${controlledElements.size} elements")
+            LogUtils.json(TAG, "navigateToPrevScreen::controlledElements:", controlledElements)
+            LogUtils.json(TAG, "navigateToPrevScreen::jsonString:", jsonString)
 
-                putExtra(CTRL_ZONE_ACTIVITY_EXTRA_ZONE_ID, zoneId)
-                putExtra(CTRL_ZONE_ACTIVITY_EXTRA_CONTROLLED_ELEMENTS, jsonString)
-            }
-
-            setResult(RESULT_OK, resultIntent)
-            finish()
-        } catch (e: Exception) {
-            Log.e(TAG, "navigateToPrevScreen: Error preparing result", e)
-            showErrorMessage("Erreur lors de la préparation des données de retour")
-
-            setResult(RESULT_CANCELED)
-            finish()
+            putExtra(CTRL_ZONE_ACTIVITY_EXTRA_ZONE_ID, zoneId)
+            putExtra(CTRL_ZONE_ACTIVITY_EXTRA_CONTROLLED_ELEMENTS, jsonString)
         }
+
+        setResult(RESULT_OK, resultIntent)
+        finish()
     }
 
     private fun navigateToMainActivity() {
-        Log.d(TAG, "Navigating to MainActivity")
+        LogUtils.d(TAG, "Navigating to MainActivity")
         val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }

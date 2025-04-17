@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Pour les fichiers dans le répertoire Pictures de l'application -->
+    <external-files-path
+        name="pictures"
+        path="Pictures" />
+
+    <!-- Pour les fichiers dans le cache de l'application -->
+    <cache-path
+        name="cache_images"
+        path="/" />
+
+    <!-- Pour les fichiers temporaires dans le stockage interne -->
+    <files-path
+        name="internal_files"
+        path="/" />
+
+    <!-- Pour le stockage externe partagé (si nécessaire) -->
+    <external-path
+        name="external_files"
+        path="." />
+
+    <!-- Pour le stockage externe spécifique à l'application -->
+    <external-files-path
+        name="external_app_files"
+        path="." />
+</paths>

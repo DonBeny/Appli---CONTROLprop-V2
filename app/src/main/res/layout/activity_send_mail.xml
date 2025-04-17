@@ -134,14 +134,21 @@
                 android:id="@+id/send_mail_activity_text_input"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+
                 android:layout_marginHorizontal="10dp"
                 android:layout_marginTop="10dp"
                 android:layout_marginBottom="100dp"
+                android:gravity="top|start"
+
                 android:autofillHints=""
-                android:gravity="top"
                 android:hint="@string/hint_message"
-                android:inputType="text"
-                android:lines="10" />
+                android:inputType="textMultiLine"
+
+                android:minLines="3"
+                android:maxLines="10"
+                android:scrollbars="vertical"
+                android:imeOptions="actionNone"
+                android:importantForAutofill="no"/>
 
         </LinearLayout>
 

@@ -1,6 +1,7 @@
 package org.orgaprop.controlprop.exceptions
 
 import android.util.Log
+import org.orgaprop.controlprop.utils.LogUtils
 
 /**
  * Exception de base pour l'application.
@@ -24,23 +25,23 @@ open class BaseException : Exception {
 
     // Constructeur 1 : Uniquement le code d'erreur
     constructor(code: Int) : this(code, null, null) {
-        Log.e(TAG, "Erreur : ${ErrorCodes.getMessageForCode(code)}")
+        LogUtils.e(TAG, "Erreur : ${ErrorCodes.getMessageForCode(code)}")
     }
 
     // Constructeur 2 : Code d'erreur et message
     constructor(code: Int, message: String?) : this(code, message, null) {
-        Log.e(TAG, "Erreur : ${ErrorCodes.getMessageForCode(code)} : ${message ?: ErrorCodes.getMessageForCode(code)}")
+        LogUtils.e(TAG, "Erreur : ${ErrorCodes.getMessageForCode(code)} : ${message ?: ErrorCodes.getMessageForCode(code)}")
     }
 
     // Constructeur 3 : Code d'erreur et cause (Exception)
     constructor(code: Int, cause: Throwable?) : this(code, null, cause) {
-        Log.e(TAG, "Erreur : ${ErrorCodes.getMessageForCode(code)}", cause)
+        LogUtils.e(TAG, "Erreur : ${ErrorCodes.getMessageForCode(code)}", cause ?: Exception())
     }
 
     // Constructeur 4 : Code d'erreur, message et cause (Exception)
     constructor(code: Int, message: String?, cause: Throwable?) : super(message ?: ErrorCodes.getMessageForCode(code), cause) {
         this.code = code
-        Log.e(TAG, "Erreur : ${ErrorCodes.getMessageForCode(code)} : ${message ?: ErrorCodes.getMessageForCode(code)}", cause)
+        LogUtils.e(TAG, "Erreur : ${ErrorCodes.getMessageForCode(code)} : ${message ?: ErrorCodes.getMessageForCode(code)}", cause ?: Exception())
     }
 
 }

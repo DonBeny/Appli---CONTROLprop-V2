@@ -1,7 +1,6 @@
 package org.orgaprop.controlprop.managers
 
 import android.content.SharedPreferences
-import android.util.Log
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -15,13 +14,12 @@ import org.json.JSONObject
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.models.ObjConfig
-import org.orgaprop.controlprop.models.ObjDateCtrl
 
 import org.orgaprop.controlprop.models.ObjElement
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.sync.SyncManager
-import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.utils.HttpTask
+import org.orgaprop.controlprop.utils.LogUtils
 
 class GrilleCtrlManager(
     private val sharedPrefs: SharedPreferences,
@@ -32,26 +30,6 @@ class GrilleCtrlManager(
     private val TAG = "GrilleCtrlManager"
 
     private val gson = Gson()
-
-    private fun getPendingControls(): List<SelectItem> {
-        Log.d(TAG, "getPendingControls: Getting pending controls")
-        Log.d(TAG, "Accessing SharedPrefs: ${sharedPrefs.javaClass.name}")
-        Log.d(TAG, "All keys in SharedPrefs: ${sharedPrefs.all.keys}")
-
-        try {
-            val json = sharedPrefs.getString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, null)
-
-            Log.d(TAG, "getPendingControls: json: $json")
-
-            return json?.let {
-                val type = object : TypeToken<List<SelectItem>>() {}.type
-                gson.fromJson(it, type) ?: emptyList()
-            } ?: emptyList()
-        } catch (e: Exception) {
-            Log.e(TAG, "Error loading pending controls", e)
-            throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Impossible de charger les contrôles en attente", e)
-        }
-    }
 
     fun getGrilleElements(entry: SelectItem): Map<Int, List<ObjElement>> {
         try {
@@ -73,7 +51,7 @@ class GrilleCtrlManager(
 
             return elementsMap
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting grille elements", e)
+            LogUtils.e(TAG, "Error getting grille elements", e)
             throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Erreur lors de la récupération des éléments de la grille", e)
         }
     }
@@ -81,6 +59,10 @@ class GrilleCtrlManager(
 
 
     fun updateGrilleData(entry: SelectItem, zoneId: Int, elements: List<ObjElement>): SelectItem {
+        LogUtils.json(TAG, "updateGrilleData: entry:", entry)
+        LogUtils.d(TAG, "updateGrilleData: zoneId: $zoneId")
+        LogUtils.json(TAG, "updateGrilleData: elements:", elements)
+
         try {
             val currentGrille = if (entry.prop?.ctrl?.grille.isNullOrEmpty()) {
                 JSONArray()
@@ -88,7 +70,7 @@ class GrilleCtrlManager(
                 JSONArray(entry.prop!!.ctrl.grille)
             }
 
-            Log.d(TAG, "updateGrilleData: currentGrille: $currentGrille")
+            LogUtils.json(TAG, "updateGrilleData: currentGrille:", currentGrille)
 
             val updatedZone = JSONObject().apply {
                 put("zoneId", zoneId)
@@ -96,14 +78,14 @@ class GrilleCtrlManager(
                 put("timestamp", System.currentTimeMillis())
             }
 
-            Log.d(TAG, "updateGrilleData: updatedZone: $updatedZone")
+            LogUtils.json(TAG, "updateGrilleData: updatedZone:", updatedZone)
 
             var found = false
             for (i in 0 until currentGrille.length()) {
-                Log.d(TAG, "updateGrilleData: currentGrille[$i]: ${currentGrille.getJSONObject(i)}")
+                LogUtils.json(TAG, "updateGrilleData: currentGrille[$i]:", currentGrille.getJSONObject(i))
 
                 if (currentGrille.getJSONObject(i).getInt("zoneId") == zoneId) {
-                    Log.d(TAG, "updateGrilleData: Updating zone $zoneId")
+                    LogUtils.d(TAG, "updateGrilleData: Updating zone $zoneId")
 
                     currentGrille.put(i, updatedZone)
                     found = true
@@ -114,7 +96,7 @@ class GrilleCtrlManager(
                 currentGrille.put(updatedZone)
             }
 
-            Log.d(TAG, "updateGrilleData: currentGrille: $currentGrille")
+            LogUtils.json(TAG, "updateGrilleData: currentGrille:", currentGrille)
 
             return entry.copy(
                 prop = entry.prop?.copy(
@@ -124,7 +106,7 @@ class GrilleCtrlManager(
                 )
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Error updating grille data", e)
+            LogUtils.e(TAG, "Error updating grille data", e)
             throw BaseException(ErrorCodes.INVALID_DATA, "Erreur lors de la mise à jour des données de la grille", e)
         }
     }
@@ -132,9 +114,9 @@ class GrilleCtrlManager(
 
 
     fun loadResidenceData(currentEntry: SelectItem, typeCtrl: String, confCtrl: JSONObject): SelectItem {
-        Log.d(TAG, "loadResidenceData: currentEntry: $currentEntry")
-        Log.d(TAG, "loadResidenceData: typeCtrl: $typeCtrl")
-        Log.d(TAG, "loadResidenceData: confCtrl: $confCtrl")
+        LogUtils.json(TAG, "loadResidenceData: currentEntry:", currentEntry)
+        LogUtils.d(TAG, "loadResidenceData: typeCtrl: $typeCtrl")
+        LogUtils.json(TAG, "loadResidenceData: confCtrl:", confCtrl)
 
         val objConfig = try {
             ObjConfig(
@@ -144,22 +126,28 @@ class GrilleCtrlManager(
                 produits = confCtrl.optBoolean("prod", true)
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Error converting JSON to ObjConfig", e)
-            throw BaseException(ErrorCodes.INVALID_DATA, "Erreur lors de la conversion de la configuration", e)
+            LogUtils.e(TAG, "Error converting JSON to ObjConfig", e)
+            throw BaseException(ErrorCodes.INVALID_DATA, "Erreur lors de la récupération de la configuration", e)
         }
 
+        LogUtils.json(TAG, "loadResidenceData: objConfig:", objConfig)
+
         try {
-            val savedControl = getPendingControls()
+            val pendingsCtrls = syncManager.getPendingControls()
+
+            LogUtils.json(TAG, "loadResidenceData: pendingsCtrls:", pendingsCtrls)
+
+            val savedControl = pendingsCtrls
                 .firstOrNull { it.id == currentEntry.id }
-                ?.takeIf { it.prop?.ctrl?.grille != "[]" }
+                ?.takeIf { it.prop?.ctrl?.grille != "[]" && !it.signed && it.prop?.ctrl?.date?.isToday() == true }
 
             if (savedControl != null) {
                 val currentProp = currentEntry.prop
                 val savedCtrl = savedControl.prop?.ctrl
 
-                Log.d(TAG, "loadResidenceData: savedControl: ${savedControl.id} => ${savedControl.prop?.ctrl?.date?.value} => ${savedControl.prop?.ctrl?.note}")
-                Log.d(TAG, "loadResidenceData: currentProp: ${currentProp?.ctrl?.date?.value} => ${currentProp?.ctrl?.note}")
-                Log.d(TAG, "loadResidenceData: savedCtrl: ${savedCtrl?.date?.value} => ${savedCtrl?.note}")
+                LogUtils.json(TAG, "loadResidenceData: savedControl:", savedControl)
+                LogUtils.json(TAG, "loadResidenceData: currentProp:", currentProp)
+                LogUtils.json(TAG, "loadResidenceData: savedCtrl:", savedCtrl)
 
                 if (currentProp != null && savedCtrl != null) {
                     return currentEntry.copy(
@@ -174,8 +162,14 @@ class GrilleCtrlManager(
                             )
                         )
                     )
+                } else {
+                    LogUtils.e(TAG, "loadResidenceData: Invalid control data")
                 }
+            } else {
+                LogUtils.d(TAG, "loadResidenceData: No saved control found")
             }
+
+            LogUtils.json(TAG, "loadResidenceData: Returning current entry", currentEntry)
 
             val updatedEntry = currentEntry.copy(
                 type = typeCtrl,
@@ -186,13 +180,15 @@ class GrilleCtrlManager(
                 )
             )
 
+            LogUtils.json(TAG, "loadResidenceData: Updated entry:", updatedEntry)
+
             saveControlProgress(updatedEntry)
             return updatedEntry
         } catch (e: BaseException) {
-            Log.e(TAG, "Error loading residence data", e)
+            LogUtils.e(TAG, "Error loading residence data", e)
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading residence data", e)
+            LogUtils.e(TAG, "Error loading residence data", e)
             throw BaseException(ErrorCodes.DATA_NOT_FOUND, "Erreur lors du chargement des données de la résidence", e)
         }
     }
@@ -200,50 +196,53 @@ class GrilleCtrlManager(
 
 
     fun saveControlProgress(control: SelectItem) {
+        LogUtils.json(TAG, "saveControlProgress: control:", control)
+
         try {
-            val current = getPendingControls().toMutableList()
+            syncManager.addOrUpdatePendingControl(control)
 
-            Log.d(TAG, "saveControlProgress: current: $current")
-
-            val existingIndex = current.indexOfFirst { it.id == control.id }
-            if (existingIndex != -1) {
-                Log.d(TAG, "saveControlProgress: Replacing existing control for ID ${control.id}")
-                current.removeAt(existingIndex)
-            } else {
-                Log.d(TAG, "saveControlProgress: Adding new control for ID ${control.id}")
-            }
-
-            current.add(control)
-
-            sharedPrefs.edit()
-                .putString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, gson.toJson(current))
-                .apply()
-
-            Log.d(TAG, "saveControlProgress: Control saved successfully")
+            LogUtils.d(TAG, "saveControlProgress: Control saved successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Error saving control progress", e)
-            throw BaseException(ErrorCodes.SYNC_FAILED, "Erreur lors de la sauvegarde de la progression du contrôle", e)
+            LogUtils.e(TAG, "Error saving control progress", e)
+            throw BaseException(ErrorCodes.SYNC_FAILED, "Erreur lors de la sauvegarde du contrôle", e)
         }
     }
 
 
 
     fun finishCtrl(callback: (Boolean) -> Unit) {
-        Log.d(TAG, "finishCtrl: Starting synchronization")
+        LogUtils.d(TAG, "finishCtrl: Starting synchronization")
 
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val result = syncManager.syncPendingControls()
-                Log.d(TAG, "finishCtrl: Sync result: $result")
+
+                LogUtils.json(TAG, "finishCtrl: Sync result:", result)
 
                 withContext(Dispatchers.Main) {
-                    callback(true)
+                    when (result) {
+                        is SyncManager.SyncResult.SUCCESS -> {
+                            LogUtils.d(TAG, "finishCtrl: Synchronization successful")
+                            callback(true)
+                        }
+                        is SyncManager.SyncResult.PARTIAL_SUCCESS -> {
+                            LogUtils.d(TAG, "finishCtrl: Synchronization partially successful")
+                            callback(true) // Considérer un succès partiel comme un succès
+                        }
+                        is SyncManager.SyncResult.FAILURE -> {
+                            LogUtils.e(TAG, "finishCtrl: Synchronization failed")
+                            callback(false)
+                        }
+                        is SyncManager.SyncResult.NO_NETWORK -> {
+                            LogUtils.e(TAG, "finishCtrl: No network available")
+                            callback(false)
+                        }
+                    }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Error during synchronization", e)
+                LogUtils.e(TAG, "Error during synchronization", e)
 
                 withContext(Dispatchers.Main) {
-                    // Même en cas d'erreur, on notifie le callback pour éviter de bloquer l'UI
                     callback(false)
                 }
             }

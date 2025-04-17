@@ -1,19 +1,21 @@
 package org.orgaprop.controlprop.viewmodels
 
-import android.graphics.Bitmap
 import android.net.Uri
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+
+import java.net.SocketTimeoutException
+import java.net.UnknownHostException
+
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.managers.SendMailManager
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.network.NetworkMonitor
-import java.net.SocketTimeoutException
-import java.net.UnknownHostException
 
 class SendMailViewModel(
     private val sendMailManager: SendMailManager,
@@ -49,11 +51,11 @@ class SendMailViewModel(
         message: String,
         photoUri: Uri? = null,
         currentPhotoPath: String? = null,
-        entry: String?
+        entry: String?,
+        timer: String?
     ) {
         viewModelScope.launch {
             try {
-                // Vérifier la connectivité réseau
                 if (!networkMonitor.isNetworkAvailable.value) {
                     _uiState.value = UiState.Error("Pas de connexion internet")
                     _sendResult.value = Result.failure(
@@ -76,9 +78,12 @@ class SendMailViewModel(
                         message = message,
                         photoUri = photoUri,
                         photoPath = currentPhotoPath,
-                        entry = entry
+                        entry = entry,
+                        timer = timer
                     )
                 }
+
+                LogUtils.json(TAG, "sendMail: result:", result)
 
                 result.fold(
                     onSuccess = { mailResult ->
@@ -105,7 +110,7 @@ class SendMailViewModel(
 
 
     private fun handleError(e: Throwable) {
-        Log.e(TAG, "Error sending mail", e)
+        LogUtils.e(TAG, "Error sending mail", e)
 
         val errorMessage = when (e) {
             is UnknownHostException -> "Serveur inaccessible"
@@ -126,7 +131,7 @@ class SendMailViewModel(
 
 
     fun setUserCredentials(idMbr: Int, adrMac: String, typeCtrl: String?) {
-        Log.d(TAG, "setUserCredentials: idMbr: $idMbr, adrMac: $adrMac, typeCtrl: $typeCtrl")
+        LogUtils.d(TAG, "setUserCredentials: idMbr: $idMbr, adrMac: $adrMac, typeCtrl: $typeCtrl")
         this.idMbr = idMbr
         this.adrMac = adrMac
         this.typeSend = typeCtrl

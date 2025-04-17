@@ -8,6 +8,7 @@ import org.json.JSONException
 import org.json.JSONObject
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
+import org.orgaprop.controlprop.utils.LogUtils
 import java.text.SimpleDateFormat
 
 import java.time.Instant
@@ -80,10 +81,26 @@ data class ObjDateCtrl(
 
     fun isToday(): Boolean {
         try {
-            val controlTime = this.value
+            var controlTime = this.value
+
+            LogUtils.d(TAG, "isToday: controlTime: $controlTime")
+
+            if (controlTime < 10000000000) {
+                controlTime *= 1000
+            }
+
             val now = Instant.now().toEpochMilli()
+
+            LogUtils.d(TAG, "isToday: now: $now")
+
             val controlDate = Instant.ofEpochMilli(controlTime).atZone(ZoneId.systemDefault()).toLocalDate()
+
+            LogUtils.d(TAG, "isToday: controlDate: $controlDate")
+
             val today = Instant.ofEpochMilli(now).atZone(ZoneId.systemDefault()).toLocalDate()
+
+            LogUtils.d(TAG, "isToday: today: $today")
+
             return controlDate == today
         } catch (e: Exception) {
             Log.e(TAG, "Erreur lors de la vérification de la date", e)

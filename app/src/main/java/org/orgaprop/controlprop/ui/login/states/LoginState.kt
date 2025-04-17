@@ -8,5 +8,6 @@ sealed class LoginState {
     data class Success(val data: LoginData) : LoginState()
     data object LoggedOut : LoginState()
     data class Error(val message: String) : LoginState()
+    data object Idle : LoginState()
 
 }

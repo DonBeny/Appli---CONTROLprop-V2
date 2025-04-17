@@ -7,6 +7,7 @@ import org.json.JSONObject
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.utils.HttpTask
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.network.HttpTaskConstantes
 import java.io.IOException
 
@@ -15,7 +16,11 @@ class TypeCtrlManager(
     private val httpTask: HttpTask
 ) {
 
-    val TAG = "TypeCtrlManager"
+    companion object {
+        private const val TAG = "TypeCtrlManager"
+    }
+
+
 
     suspend fun fetchPlanAction(rsdId: Int, idMbr: Int, adrMac: String): JSONObject {
         return try {
@@ -28,11 +33,11 @@ class TypeCtrlManager(
 
             val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_PROP, HttpTaskConstantes.HTTP_TASK_ACT_PROP_CBL_PLAN_ACTIONS, paramGet, paramsPost)
 
-            Log.d(TAG, "fetchPlanAction: response = $response")
+            LogUtils.json(TAG, "fetchPlanAction: response:", response)
 
             val jsonObject = JSONObject(response)
 
-            Log.d(TAG, "fetchPlanAction: jsonObject = $jsonObject")
+            LogUtils.json(TAG, "fetchPlanAction: jsonObject", jsonObject)
 
             jsonObject
         } catch (e: IOException) {
@@ -43,6 +48,8 @@ class TypeCtrlManager(
             throw TypeCtrlException(ErrorCodes.UNKNOWN_ERROR, e)
         }
     }
+
+
 
     class TypeCtrlException(
         code: Int,
@@ -64,6 +71,7 @@ class TypeCtrlManager(
                 }
             }
         }
+
     }
 
 }

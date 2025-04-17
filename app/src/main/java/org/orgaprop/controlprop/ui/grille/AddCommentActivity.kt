@@ -24,6 +24,7 @@ import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.utils.FileUtils
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.viewmodels.AddCommentViewModel
 
 class AddCommentActivity : BaseActivity() {
@@ -58,7 +59,7 @@ class AddCommentActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
-            Log.d(CtrlZoneActivity.TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            LogUtils.d(CtrlZoneActivity.TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
             navigateToPrevScreen()
         }
     }
@@ -160,10 +161,6 @@ class AddCommentActivity : BaseActivity() {
             }, 100)
         }
     }
-    private fun hideKeyboard() {
-        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-        imm.hideSoftInputFromWindow(binding.addCommentActivityCommentInput.windowToken, 0)
-    }
 
     private fun takePicture() {
         val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
@@ -177,9 +174,9 @@ class AddCommentActivity : BaseActivity() {
 
         when (event) {
             is AddCommentViewModel.NavigationEvent.SaveComment -> {
-                Log.d(TAG, "handleNavigationEvent: SaveComment")
-                Log.d(TAG, "handleNavigationEvent: Comment text: ${event.commentText}")
-                Log.d(TAG, "handleNavigationEvent: Image base64: ${event.imageBase64}")
+                LogUtils.d(TAG, "handleNavigationEvent: SaveComment")
+                LogUtils.d(TAG, "handleNavigationEvent: Comment text: ${event.commentText}")
+                LogUtils.d(TAG, "handleNavigationEvent: Image base64: ${event.imageBase64}")
 
                 val resultIntent = Intent().apply {
                     putExtra(CtrlZoneActivity.CTRL_ZONE_ACTIVITY_EXTRA_ELEMENT_POSITION, elementIndex)
@@ -191,7 +188,7 @@ class AddCommentActivity : BaseActivity() {
                 setResult(RESULT_OK, resultIntent)
                 finish()
             }
-            AddCommentViewModel.NavigationEvent.Cancel -> {
+            is AddCommentViewModel.NavigationEvent.Cancel -> {
                 navigateToPrevScreen()
             }
         }
@@ -204,19 +201,12 @@ class AddCommentActivity : BaseActivity() {
         finish()
     }
     private fun navigateToMainActivity() {
-        Log.d(CtrlZoneActivity.TAG, "Navigating to MainActivity")
+        LogUtils.d(CtrlZoneActivity.TAG, "Navigating to MainActivity")
         val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)
         finish()
-    }
-
-    private val onBackPressedCallback = object : OnBackPressedCallback(true) {
-        override fun handleOnBackPressed() {
-            Log.d(CtrlZoneActivity.TAG, "handleOnBackPressed: Back Pressed")
-            navigateToPrevScreen()
-        }
     }
 
 }

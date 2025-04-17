@@ -46,6 +46,12 @@ class SelectListViewModel(
     private val _isLoading = MutableLiveData<Boolean>()
     val isLoading: LiveData<Boolean> get() = _isLoading
 
+    private val _complementaryDataReady = MutableLiveData<Boolean>()
+    val complementaryDataReady: LiveData<Boolean> get() = _complementaryDataReady
+
+    private val _complementaryDataError = MutableLiveData<String>()
+    val complementaryDataError: LiveData<String> get() = _complementaryDataError
+
 
     /**
      * Récupère les données correspondant au type et aux paramètres
@@ -68,6 +74,9 @@ class SelectListViewModel(
                             idMbr,
                             adrMac
                         )
+
+                        Log.d(TAG, "fetchData jsonResponse: $jsonResponse")
+
                         parseJsonResponse(jsonResponse, type)
                     }
                 }
@@ -92,6 +101,11 @@ class SelectListViewModel(
      * @return Liste des agences sous forme de SelectItem
      */
     private fun fetchAgenciesFromUserData(): List<SelectItem> {
+        if (!::userData.isInitialized) {
+            Log.e(TAG, "fetchAgenciesFromUserData: userData not initialized")
+            return emptyList()
+        }
+
         return userData.let {
             val agenciesArray = it.agencies
             val agencies = mutableListOf<SelectItem>()
@@ -109,6 +123,56 @@ class SelectListViewModel(
         }
     }
 
+    /**
+     * Récupère les données complémentaires (agents et prestataires) pour un groupe donné
+     * @param groupId ID du groupe
+     */
+    fun fetchComplementaryData(agencyId: Int) {
+        _isLoading.value = true
+        _complementaryDataReady.value = false
+
+        viewModelScope.launch {
+            try {
+                val jsonResponse = selectListManager.fetchData(
+                    SelectListActivity.SELECT_LIST_TYPE_PRESTATES,
+                    agencyId,
+                    "",
+                    idMbr,
+                    adrMac
+                )
+
+                if (jsonResponse.getBoolean("status")) {
+                    val (agents, prestataires) = JsonParser.extractAgentsAndPrestataires(jsonResponse)
+
+                    _listAgents.postValue(agents)
+                    _listPrestataires.postValue(prestataires)
+
+                    _complementaryDataReady.postValue(true)
+                } else {
+                    val errorMessage = jsonResponse.optJSONObject("error")?.optString("txt")
+                        ?: "Erreur lors de la récupération des données complémentaires"
+                    _complementaryDataError.postValue(errorMessage)
+                }
+
+                _isLoading.postValue(false)
+            } catch (e: BaseException) {
+                _complementaryDataError.postValue(e.message)
+                _isLoading.postValue(false)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error fetching complementary data: ${e.message}", e)
+                _complementaryDataError.postValue("Une erreur inconnue s'est produite")
+                _isLoading.postValue(false)
+            }
+        }
+    }
+
+
+
+    fun setCachedItems(items: List<SelectItem>) {
+        _items.value = items
+        _isLoading.value = false
+    }
+
 
 
     /**
@@ -119,19 +183,33 @@ class SelectListViewModel(
      */
     private fun parseJsonResponse(jsonResponse: JSONObject, type: String): List<SelectItem> {
         if (jsonResponse.getBoolean("status")) {
-            if (type == SelectListActivity.SELECT_LIST_TYPE_GRP) {
-                val items = JsonParser.parseResponseGrp(jsonResponse, type)
+            Log.d(TAG, "parseJsonResponse type: $type")
 
-                // Extraire les agents et prestataires pour les stocker dans les LiveData
+            if (type == SelectListActivity.SELECT_LIST_TYPE_GRP) {
+                Log.d(TAG, "parseJsonResponse listGrp")
+
+                val items = JsonParser.parseResponseGrp(jsonResponse, type)
                 val (agents, prestataires) = JsonParser.extractAgentsAndPrestataires(jsonResponse)
+
                 _listAgents.postValue(agents)
                 _listPrestataires.postValue(prestataires)
 
+                Log.d(TAG, "parseJsonResponse items: $items")
+                Log.d(TAG, "parseJsonResponse agents: $agents")
+                Log.d(TAG, "parseJsonResponse prestataires: $prestataires")
+
                 return items
             } else {
-                return JsonParser.parseResponseRsd(jsonResponse, type)
+                Log.d(TAG, "parseJsonResponse not listGrp")
+
+                val items = JsonParser.parseResponseRsd(jsonResponse, type)
+
+                Log.d(TAG, "parseJsonResponse items: $items")
+
+                return items
             }
         } else {
+            Log.e(TAG, "parseJsonResponse error serveur: ${jsonResponse.getJSONObject("error")}")
             val errorMessage = jsonResponse.optJSONObject("error")?.optString("txt")
                 ?: "Erreur inconnue"
             _errorMessage.postValue(errorMessage)

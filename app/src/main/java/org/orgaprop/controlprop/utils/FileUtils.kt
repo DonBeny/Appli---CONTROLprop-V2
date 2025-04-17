@@ -68,12 +68,12 @@ object FileUtils {
      */
     fun bitmapToBase64(
         bitmap: Bitmap,
-        format: Bitmap.CompressFormat = Bitmap.CompressFormat.JPEG,
+        format: Bitmap.CompressFormat = Bitmap.CompressFormat.PNG,
         quality: Int = DEFAULT_QUALITY
     ): String {
         ByteArrayOutputStream().use { outputStream ->
             bitmap.compress(format, quality, outputStream)
-            return Base64.encodeToString(outputStream.toByteArray(), Base64.DEFAULT)
+            return Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
         }
     }
     /**
@@ -196,11 +196,18 @@ object FileUtils {
     /**
      * Corrige l'orientation d'un bitmap en fonction des données EXIF.
      */
-    private fun fixBitmapOrientation(context: Context, bitmap: Bitmap, uri: Uri): Bitmap {
+    fun fixBitmapOrientation(context: Context, bitmap: Bitmap?, uri: Uri): Bitmap? {
+        if (bitmap == null) return null
+
         try {
             val inputStream = context.contentResolver.openInputStream(uri) ?: return bitmap
-            val orientation = getExifOrientation(context, uri, inputStream)
+            val exif = ExifInterface(inputStream)
             inputStream.close()
+
+            val orientation = exif.getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
+            )
 
             if (orientation == ExifInterface.ORIENTATION_NORMAL) {
                 return bitmap

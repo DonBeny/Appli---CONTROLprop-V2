@@ -1,8 +1,9 @@
 package org.orgaprop.controlprop.managers
 
 import android.content.SharedPreferences
-import android.util.Log
+
 import org.orgaprop.controlprop.sync.SyncManager
+import org.orgaprop.controlprop.utils.LogUtils
 
 class FinishCtrlManager(
     private val sharedPrefs: SharedPreferences,
@@ -26,7 +27,7 @@ class FinishCtrlManager(
         val control = pendingControls.find { it.id == controlId }
         val isSigned = control?.signed ?: false
 
-        Log.d(TAG, "isControlSigned: ID=$controlId, isSigned=$isSigned")
+        LogUtils.d(TAG, "isControlSigned: ID=$controlId, isSigned=$isSigned")
         return isSigned
     }
 
@@ -41,7 +42,7 @@ class FinishCtrlManager(
         val control = pendingControls.find { it.id == controlId }
         val hasPlanActions = control?.planActions != null
 
-        Log.d(TAG, "hasControlPlanActions: ID=$controlId, hasPlanActions=$hasPlanActions")
+        LogUtils.d(TAG, "hasControlPlanActions: ID=$controlId, hasPlanActions=$hasPlanActions")
         return hasPlanActions
     }
 

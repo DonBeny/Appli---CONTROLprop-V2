@@ -20,6 +20,7 @@ import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.ui.selectList.adapter.SelectListAdapter
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.viewmodels.SelectListViewModel
 
@@ -39,6 +40,7 @@ class SelectListActivity : BaseActivity(), SelectListAdapter.OnItemClickListener
         const val SELECT_LIST_TYPE_GRP = "grp"
         const val SELECT_LIST_TYPE_RSD = "rsd"
         const val SELECT_LIST_TYPE_SEARCH = "search"
+        const val SELECT_LIST_TYPE_PRESTATES = "prestates"
     }
 
     private lateinit var binding: ActivitySelectListBinding
@@ -86,11 +88,19 @@ class SelectListActivity : BaseActivity(), SelectListAdapter.OnItemClickListener
             return
         } else {
             Log.d(TAG, "initializeComponents: UserData is not null")
+            viewModel.setUserData(userData!!)
         }
 
         showLoadingDialog()
 
-        viewModel.fetchData(type, parentId, searchQuery)
+        if (type == SELECT_LIST_TYPE_RSD && getEntryList().isNotEmpty()) {
+            val cachedList = getEntryList()
+            LogUtils.json(TAG, "initializeComponents: Using cached entry list", cachedList)
+            viewModel.setCachedItems(cachedList)
+        } else {
+            // Sinon, charger les données depuis le serveur
+            viewModel.fetchData(type, parentId, searchQuery)
+        }
     }
     override fun setupComponents() {
         adapter = SelectListAdapter(emptyList(), type, this)
@@ -103,7 +113,6 @@ class SelectListActivity : BaseActivity(), SelectListAdapter.OnItemClickListener
 
         setupObservers()
     }
-    override fun setupListeners() {}
     override fun setupObservers() {
         viewModel.items.observe(this) { items ->
             adapter.updateItems(items)
@@ -141,8 +150,10 @@ class SelectListActivity : BaseActivity(), SelectListAdapter.OnItemClickListener
                 actionText = "Retour",
                 action = { navigateToPrevScreen() }
             )
+            navigateToPrevScreen()
         }
     }
+    override fun setupListeners() {}
 
 
 
@@ -160,6 +171,41 @@ class SelectListActivity : BaseActivity(), SelectListAdapter.OnItemClickListener
         if( type == SELECT_LIST_TYPE_RSD ) {
             setEntrySelected(item)
             setEntryList(adapter.getCurrentList())
+        } else if (type == SELECT_LIST_TYPE_SEARCH) {
+            showLoadingDialog()
+
+
+            viewModel.fetchComplementaryData(item.agency)
+
+            viewModel.complementaryDataReady.observe(this) { isReady ->
+                if (isReady) {
+                    setEntrySelected(item)
+                    setEntryList(adapter.getCurrentList())
+
+                    dismissLoadingDialog()
+
+                    val resultIntent = Intent().apply {
+                        putExtra(SELECT_LIST_TYPE, type)
+                        putExtra(SELECT_LIST_RETURN, item)
+                        putExtra(SELECT_LIST_COMMENT, item.comment)
+                    }
+
+                    setResult(RESULT_OK, resultIntent)
+                    finish()
+                }
+            }
+
+            viewModel.complementaryDataError.observe(this) { error ->
+                dismissLoadingDialog()
+                UiUtils.showErrorSnackbar(
+                    binding.root,
+                    error,
+                    actionText = "Réessayer",
+                    action = { onItemClick(item) }
+                )
+            }
+
+            return
         }
 
         val resultIntent = Intent().apply {
@@ -182,7 +228,7 @@ class SelectListActivity : BaseActivity(), SelectListAdapter.OnItemClickListener
             progressDialog?.dismiss()
             progressDialog = UiUtils.showProgressDialog(
                 this,
-                message = "Veuillez patienter pendant la construction des données...",
+                message = "Veuillez patienter pendant la récupération des données...",
                 cancelable = false
             )
         }

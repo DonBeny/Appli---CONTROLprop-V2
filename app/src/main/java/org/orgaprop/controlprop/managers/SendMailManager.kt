@@ -6,18 +6,21 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+
 import org.json.JSONObject
+
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.ui.sendMail.SendMailActivity
-import org.orgaprop.controlprop.utils.FileUtils
 import org.orgaprop.controlprop.utils.HttpTask
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.network.HttpTaskConstantes
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.IOException
 
 class SendMailManager(
     private val httpTask: HttpTask,
@@ -26,8 +29,9 @@ class SendMailManager(
 
     companion object {
         private const val TAG = "SendMailManager"
-        private const val MAX_IMAGE_WIDTH = 1280
-        private const val MAX_IMAGE_HEIGHT = 1280
+
+        private const val MAX_IMAGE_WIDTH = 640
+        private const val MAX_IMAGE_HEIGHT = 640
         private const val IMAGE_QUALITY = 85
     }
 
@@ -60,7 +64,8 @@ class SendMailManager(
         message: String,
         photoUri: Uri? = null,
         photoPath: String? = null,
-        entry: String?
+        entry: String?,
+        timer: String?
     ): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val (isValid, errorMsg) = validateParams(idMbr, adrMac, dest1, dest2, dest3, dest4)
@@ -71,11 +76,10 @@ class SendMailManager(
             }
 
             // Préparer les paramètres de base
-            val paramsPost = buildBasicParams(idMbr, adrMac, dest1, dest2, dest3, dest4, message, entry)
+            val paramsPost = buildBasicParams(idMbr, adrMac, dest1, dest2, dest3, dest4, message, entry, timer)
             val cblParam = getCblParam(typeSend)
 
             var bitmap: Bitmap? = null
-            var tempFile: File? = null
 
             try {
                 bitmap = when {
@@ -85,33 +89,47 @@ class SendMailManager(
                 }
 
                 bitmap?.let { originalBitmap ->
-                    // Redimensionner si nécessaire
                     val optimizedBitmap = resizeBitmapIfNeeded(originalBitmap)
+                    val pngBitmap = ensurePngFormat(optimizedBitmap)
 
-                    // Convertir en base64
-                    val base64Image = FileUtils.bitmapToBase64(
-                        optimizedBitmap,
-                        Bitmap.CompressFormat.JPEG,
-                        IMAGE_QUALITY
+                    val base64Image = Base64.encodeToString(
+                        bitmapToByteArray(pngBitmap, Bitmap.CompressFormat.PNG),
+                        Base64.NO_WRAP
                     )
 
                     paramsPost.add("image" to base64Image)
                 }
 
-                // Exécuter la requête HTTP
                 val response = executeHttpRequest(cblParam, paramsPost)
 
-                Log.d(TAG, "sendMail: response received")
+                LogUtils.json(TAG, "sendMail: response received", response)
 
                 return@withContext parseServerResponse(response)
             } finally {
-                tempFile?.delete()
                 bitmap?.recycle()
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error in sendMail", e)
             Result.failure(convertExceptionToBaseException(e))
         }
+    }
+    private fun bitmapToByteArray(bitmap: Bitmap, format: Bitmap.CompressFormat): ByteArray {
+        ByteArrayOutputStream().use { outputStream ->
+            bitmap.compress(format, 100, outputStream)
+            return outputStream.toByteArray()
+        }
+    }
+    private fun ensurePngFormat(bitmap: Bitmap): Bitmap {
+        val outputStream = ByteArrayOutputStream()
+
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+
+        val pngBytes = outputStream.toByteArray()
+        val pngBitmap = BitmapFactory.decodeByteArray(pngBytes, 0, pngBytes.size)
+
+        outputStream.close()
+
+        return pngBitmap ?: bitmap
     }
 
 
@@ -128,7 +146,7 @@ class SendMailManager(
                 BitmapFactory.decodeStream(inputStream)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error loading bitmap from URI", e)
+            LogUtils.e(TAG, "Error loading bitmap from URI", e)
             null
         }
     }
@@ -171,7 +189,8 @@ class SendMailManager(
         dest3: String,
         dest4: String,
         message: String,
-        entry: String?
+        entry: String?,
+        timer: String?
     ): MutableList<Pair<String, String>> {
         val params = mutableListOf(
             "dest1" to dest1,
@@ -179,13 +198,21 @@ class SendMailManager(
             "dest3" to dest3,
             "dest4" to dest4,
             "msg" to message,
-            "idMbr" to idMbr.toString(),
-            "adrMac" to adrMac
+            "mbr" to idMbr.toString(),
+            "mac" to adrMac
         )
 
-        // Ajouter l'ID d'entrée si présent
+        LogUtils.json(TAG, "buildBasicParams: params", params)
+
         if (!entry.isNullOrBlank()) {
+            LogUtils.json(TAG, "buildBasicParams: entry", entry)
+
             params.add("entry" to entry)
+        }
+        if (timer != null) {
+            LogUtils.json(TAG, "buildBasicParams: timer", timer)
+
+            params.add("timer" to timer)
         }
 
         return params
@@ -224,6 +251,9 @@ class SendMailManager(
      */
     private fun parseServerResponse(response: String): Result<Unit> {
         val jsonObject = JSONObject(response)
+
+        LogUtils.json(TAG, "parseServerResponse: jsonObject", jsonObject)
+
         return if (jsonObject.getBoolean("status")) {
             Result.success(Unit)
         } else {

@@ -28,13 +28,16 @@ import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
 import org.orgaprop.controlprop.utils.FileUtils.bitmapToBase64
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.utils.UiUtils.showUiAlert
 import org.orgaprop.controlprop.viewmodels.SignatureViewModel
 
 class SignatureActivity : BaseActivity() {
 
-    private val TAG = "SignatureActivity"
+    companion object {
+        private const val TAG = "SignatureActivity"
+    }
 
     private lateinit var binding: ActivitySignatureBinding
     private val viewModel: SignatureViewModel by viewModel()
@@ -51,7 +54,7 @@ class SignatureActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
-            Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            LogUtils.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
             navigateToPrevScreen()
         }
     }
@@ -63,29 +66,29 @@ class SignatureActivity : BaseActivity() {
         val userData = getUserData()
 
         if( userData == null ) {
-            Log.d(TAG, "initializeComponents: UserData is null")
+            LogUtils.d(TAG, "initializeComponents: UserData is null")
             navigateToMainActivity()
             return
         } else {
             user = userData
-            Log.d(TAG, "initializeComponents: UserData is not null")
+            LogUtils.d(TAG, "initializeComponents: UserData is not null")
         }
 
         val idMbr = user.idMbr
         val adrMac = user.adrMac
 
-        Log.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
+        LogUtils.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
 
         viewModel.setUserData(user)
 
         val savedEntry = getEntrySelected()
 
         if( savedEntry == null ) {
-            Log.d(TAG, "initializeComponents: Entry is null")
+            LogUtils.d(TAG, "initializeComponents: Entry is null")
             navigateToSelectEntryActivity()
             return
         } else {
-            Log.d(TAG, "initializeComponents: Entry is not null")
+            LogUtils.d(TAG, "initializeComponents: Entry is not null")
             entrySelected = savedEntry
             viewModel.setEntrySelected(entrySelected)
         }
@@ -142,20 +145,20 @@ class SignatureActivity : BaseActivity() {
 
                     when (result) {
                         is SignatureManager.SignatureResult.Success -> {
-                            Log.d(TAG, "Signatures enregistrées avec succès")
+                            LogUtils.d(TAG, "Signatures enregistrées avec succès")
                             onSignaturesSaved()
                         }
                         is SignatureManager.SignatureResult.PartialSuccess -> {
                             if (!result.failedIds.contains(entrySelected.id)) {
-                                Log.d(TAG, "Synchronisation partielle réussie pour cet élément")
+                                LogUtils.d(TAG, "Synchronisation partielle réussie pour cet élément")
                                 onSignaturesSaved()
                             } else {
-                                Log.e(TAG, "Échec de synchronisation pour cet élément")
+                                LogUtils.e(TAG, "Échec de synchronisation pour cet élément")
                                 showUiAlert("Signatures enregistrées localement, mais échec de synchronisation avec le serveur.")
                             }
                         }
                         is SignatureManager.SignatureResult.Error -> {
-                            Log.e(TAG, "Erreur lors de l'enregistrement des signatures: ${result.message}")
+                            LogUtils.e(TAG, "Erreur lors de l'enregistrement des signatures: ${result.message}")
                             showUiAlert(result.message)
                         }
                         null -> Unit
@@ -193,7 +196,6 @@ class SignatureActivity : BaseActivity() {
 
     private fun validateSignatures() {
         try {
-            // Si aucune signature n'a été effectuée, simplement retourner à l'écran précédent
             if (!ctrlHasSigned && !agtHasSigned) {
                 setResult(RESULT_CANCELED)
                 finish()
@@ -202,7 +204,6 @@ class SignatureActivity : BaseActivity() {
 
             showLoading(true)
 
-            // Récupérer les signatures existantes (si présentes)
             val controlSignature = if (ctrlHasSigned) {
                 binding.signatureActivityCtrlSignaturePad.signatureBitmap?.let { bitmapToBase64(it) } ?: ""
             } else ""
@@ -219,10 +220,9 @@ class SignatureActivity : BaseActivity() {
                 agentName = agentName
             )
 
-            // Enregistrer les signatures
             viewModel.saveSignatures(entrySelected, signatureData)
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la validation des signatures", e)
+            LogUtils.e(TAG, "Erreur lors de la validation des signatures", e)
             showLoading(false)
             showUiAlert("Une erreur est survenue lors de l'enregistrement des signatures")
         }
@@ -233,50 +233,76 @@ class SignatureActivity : BaseActivity() {
     }
 
     private fun setupPrestate() {
-        // Récupérer la valeur de prestate
         val prestate = entrySelected.prop?.ctrl?.prestate ?: 0
 
         try {
-            Log.d(TAG, "setupPrestate: prestate = $prestate")
+            LogUtils.d(TAG, "setupPrestate: prestate = $prestate")
 
-            // Si prestate est positif, utiliser la liste des agents
             if (prestate > 0) {
                 val listAgents = getListAgents()
+                val idPrestate = if (prestate > 0) prestate else entrySelected.referents?.ent?.id ?: 0
+
+                LogUtils.d(TAG, "setupPrestate: idPrestate = $idPrestate")
+
                 listAgents?.let {
-                    Log.d(TAG, "setupPrestate: listAgents = $listAgents")
-                    // Trouver l'agent correspondant à prestate dans la liste
-                    val agentObj = it.optJSONObject(prestate.toString())
-                    val agentName = agentObj?.optString("txt", "") ?: ""
-                    Log.d(TAG, "setupPrestate: agentName from agents = $agentName")
+                    LogUtils.json(TAG, "setupPrestate: listAgents", listAgents)
+
+                    val agentObj = it.optJSONObject(idPrestate.toString())
+                    val agentName = agentObj?.optString("name", "")
+
+                    LogUtils.json(TAG, "setupPrestate: agentName from agents:", agentObj)
+                    LogUtils.d(TAG, "setupPrestate: agentName from agents = $agentName")
+
                     binding.signatureActivityAgtNameInput.setText(agentName)
                 }
             }
-            // Si prestate est négatif, utiliser la liste des prestataires
             else if (prestate < 0) {
                 val listPrestates = getListPrestates()
                 listPrestates?.let {
-                    Log.d(TAG, "setupPrestate: listPrestates = $listPrestates")
-                    // Utiliser la valeur absolue de prestate comme clé
+                    LogUtils.json(TAG, "setupPrestate: listPrestates", listPrestates)
+
                     val prestateObj = it.optJSONObject(Math.abs(prestate).toString())
                     val prestateName = prestateObj?.optString("txt", "") ?: ""
-                    Log.d(TAG, "setupPrestate: prestateName from prestates = $prestateName")
+
+                    LogUtils.d(TAG, "setupPrestate: prestateName from prestates = $prestateName")
+
                     binding.signatureActivityAgtNameInput.setText(prestateName)
                 }
             }
+            else {
+                val entId = entrySelected.referents?.ent?.id
+                val entType = entrySelected.referents?.ent?.type
+
+                Log.d(TAG, "setupPrestate: prestate = 0, checking referents: entId = $entId, entType = $entType")
+
+                if (entId != null) {
+                    if (entType == "agent") {
+                        val listAgents = getListAgents()
+                        listAgents?.let {
+                            val agentObj = it.optJSONObject(entId.toString())
+                            val agentName = agentObj?.optString("txt", "") ?: ""
+                            Log.d(TAG, "setupPrestate: agentName from referents = $agentName")
+                            binding.signatureActivityAgtNameInput.setText(agentName)
+                        }
+                    } else {
+                        val listPrestates = getListPrestates()
+                        listPrestates?.let {
+                            val prestateObj = it.optJSONObject(entId.toString())
+                            val prestateName = prestateObj?.optString("txt", "") ?: ""
+                            Log.d(TAG, "setupPrestate: prestateName from referents = $prestateName")
+                            binding.signatureActivityAgtNameInput.setText(prestateName)
+                        }
+                    }
+                }
+            }
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors du préchargement du nom de l'agent", e)
+            LogUtils.e(TAG, "Erreur lors du préchargement du nom de l'agent", e)
         }
     }
 
 
 
-    private fun hideKeyboard() {
-        val imm = getSystemService(INPUT_METHOD_SERVICE) as? InputMethodManager
-        imm?.hideSoftInputFromWindow(binding.root.windowToken, 0)
-    }
-
     private fun updateSaveButtonState() {
-        // Activer le bouton de sauvegarde uniquement si au moins une signature est présente
         binding.signatureActivityCtrlSaveBtn.isEnabled = ctrlHasSigned && agtHasSigned
     }
 
@@ -290,8 +316,7 @@ class SignatureActivity : BaseActivity() {
             UiUtils.showProgressDialog(
                 this,
                 "Chargement en cours...",
-                "Veuillez patienter",
-                false
+                "Veuillez patienter"
             )
         } else {
             UiUtils.dismissCurrentDialog()
@@ -299,21 +324,23 @@ class SignatureActivity : BaseActivity() {
     }
 
     private fun showExitConfirmationDialog() {
-        AlertDialog.Builder(this)
-            .setTitle("Confirmer l'abandon")
-            .setMessage("Voulez-vous quitter sans enregistrer les signatures ?")
-            .setPositiveButton("Oui") { _, _ ->
+        UiUtils.showConfirmationDialog(
+            context = this,
+            title = "Confirmer l'abandon",
+            message = "Voulez-vous quitter sans enregistrer les signatures ?",
+            positiveButtonText = "Oui",
+            negativeButtonText = "Non",
+            positiveAction = {
                 setResult(Activity.RESULT_CANCELED)
                 finish()
             }
-            .setNegativeButton("Non", null)
-            .show()
+        )
     }
 
 
 
     private fun navigateToPrevScreen() {
-        Log.d(TAG, "navigateToPrevScreen: Navigating to previous screen")
+        LogUtils.d(TAG, "navigateToPrevScreen: Navigating to previous screen")
         if( ctrlHasSigned || agtHasSigned ) {
             showExitConfirmationDialog()
         } else {
@@ -324,7 +351,7 @@ class SignatureActivity : BaseActivity() {
     }
 
     private fun navigateToMainActivity() {
-        Log.d(TAG, "Navigating to MainActivity")
+        LogUtils.d(TAG, "Navigating to MainActivity")
         val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -332,7 +359,7 @@ class SignatureActivity : BaseActivity() {
         finish()
     }
     private fun navigateToSelectEntryActivity() {
-        Log.d(TAG, "Navigating to SelectEntryActivity")
+        LogUtils.d(TAG, "Navigating to SelectEntryActivity")
         val intent = Intent(this, SelectEntryActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }

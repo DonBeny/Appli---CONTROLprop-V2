@@ -16,6 +16,7 @@ import org.orgaprop.controlprop.models.ObjPlanActions
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.viewmodels.PlanActionsViewModel
 import java.text.SimpleDateFormat
@@ -48,7 +49,7 @@ class PlanActionsActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
-            Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            LogUtils.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
             navigateToPrevScreen()
         }
     }
@@ -63,23 +64,24 @@ class PlanActionsActivity : BaseActivity() {
         val entrySelect = getEntrySelected()
 
         if( userData == null ) {
-            Log.d(TAG, "initializeComponents: UserData is null")
+            LogUtils.d(TAG, "initializeComponents: UserData is null")
             navigateToMainActivity()
             return
         } else if (entrySelect == null) {
-            Log.d(TAG, "initializeComponents: EntrySelect is null")
+            LogUtils.d(TAG, "initializeComponents: EntrySelect is null")
             navigateToSelectEntryActivity()
             return
         } else {
-            Log.d(TAG, "initializeComponents: UserData is not null")
+            LogUtils.d(TAG, "initializeComponents: UserData is not null")
         }
 
         val idMbr = userData.idMbr
         val adrMac = userData.adrMac
 
-        Log.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
+        LogUtils.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
 
         viewModel.setUserCredentials(idMbr, adrMac, entrySelect)
+        viewModel.setTypeCtrl(getTypeCtrl())
         viewModel.getPlanActions()
     }
     override fun setupComponents() {
@@ -117,15 +119,27 @@ class PlanActionsActivity : BaseActivity() {
                     is PlanActionsViewModel.PlanActionEvent.NavigateBack -> {
                         navigateToPrevScreen()
                     }
+                    is PlanActionsViewModel.PlanActionEvent.NavigateTo -> {
+                        when (it.destination) {
+                            PlanActionsViewModel.DESTINATION_SELECT_ENTRY -> {
+                                navigateToSelectEntryActivity()
+                            }
+                            PlanActionsViewModel.DESTINATION_BACK -> {
+                                navigateToPrevScreen()
+                            }
+                        }
+                    }
                     is PlanActionsViewModel.PlanActionEvent.OpenCalendar -> {
                         openCalendarWithReminder()
+                        navigateToPrevScreen()
                     }
                     is PlanActionsViewModel.PlanActionEvent.ShowMessage -> {
-                        showToast(it.message)
+                        UiUtils.showInfoSnackbar(binding.root, it.message)
                     }
                     is PlanActionsViewModel.PlanActionEvent.ResetForm -> {
                         resetForm()
                     }
+                    is PlanActionsViewModel.PlanActionEvent.StayOnScreen -> {}
                 }
                 viewModel.eventHandled()
             }
@@ -151,10 +165,10 @@ class PlanActionsActivity : BaseActivity() {
                 if (date.isNotEmpty() && planText.isNotEmpty()) {
                     viewModel.savePlanAction(-1, date, planText)
                 } else {
-                    showToast("Veuillez remplir tous les champs")
+                    showErrorMessage("Veuillez remplir tous les champs")
                 }
             } else {
-                showToast("Impossible de modifier un plan d'actions déjà enregistré")
+                showErrorMessage("Impossible de modifier un plan d'actions déjà enregistré")
             }
         }
 
@@ -166,19 +180,25 @@ class PlanActionsActivity : BaseActivity() {
                 if (date.isNotEmpty() && planText.isNotEmpty()) {
                     viewModel.savePlanActionAndOpenCalendar(-1, date, planText)
                 } else {
-                    showToast("Veuillez remplir tous les champs")
+                    showErrorMessage("Veuillez remplir tous les champs")
                 }
             } else {
-                showToast("Impossible de modifier un plan d'actions déjà enregistré")
+                showErrorMessage("Impossible de modifier un plan d'actions déjà enregistré")
             }
         }
 
         binding.addPlanActionValidBtn.setOnClickListener {
             val currentPlan = viewModel.currentPlan.value
+
+            LogUtils.json(TAG, "currentPlan:", currentPlan)
+            LogUtils.d(TAG, "currentPlan != null: ${currentPlan != null}")
+            LogUtils.d(TAG, "currentPlan.id: ${currentPlan?.id}")
+            LogUtils.d(TAG, "currentPlan.id > 0: ${(currentPlan?.id ?: -1) > 0}")
+
             if (currentPlan != null && currentPlan.id > 0) {
                 viewModel.validatePlanAction(currentPlan.id)
             } else {
-                showToast("Aucun plan d'actions à lever")
+                showErrorMessage("Aucun plan d'actions à lever")
             }
         }
 
@@ -186,7 +206,7 @@ class PlanActionsActivity : BaseActivity() {
             if (viewModel.mode.value == PlanActionsViewModel.PlanActionMode.CREATION) {
                 showDatePickerDialog()
             } else {
-                showToast("Impossible de modifier un plan d'actions déjà enregistré")
+                showErrorMessage("Impossible de modifier un plan d'actions déjà enregistré")
             }
         }
     }
@@ -197,10 +217,7 @@ class PlanActionsActivity : BaseActivity() {
      * Traite un plan d'actions chargé.
      */
     private fun handlePlanLoaded(plan: ObjPlanActions?) {
-        // Si le plan existe et a un ID, on est en mode édition
-        // Sinon, on est en mode création avec des champs vides
         if (plan == null) {
-            // Initialiser avec la date du lendemain
             val calendar = Calendar.getInstance()
             calendar.add(Calendar.DAY_OF_MONTH, 1)
             val formattedDate = SimpleDateFormat("dd/MM/yyyy", Locale.FRENCH).format(calendar.time)
@@ -234,18 +251,15 @@ class PlanActionsActivity : BaseActivity() {
         val creationMode = mode == PlanActionsViewModel.PlanActionMode.CREATION
 
         with(binding) {
-            // Les boutons de sauvegarde sont actifs uniquement en mode création
             addPlanActionSaveBtn.isEnabled = creationMode
             addPlanActionSaveBtn.alpha = if (creationMode) 1.0f else 0.5f
 
             addPlanActionAlertBtn.isEnabled = creationMode
             addPlanActionAlertBtn.alpha = if (creationMode) 1.0f else 0.5f
 
-            // Le bouton de levée est actif uniquement en mode édition
             addPlanActionValidBtn.isEnabled = !creationMode
             addPlanActionValidBtn.alpha = if (creationMode) 0.5f else 1.0f
 
-            // Les champs de texte sont éditables uniquement en mode création
             addPlanActionDateTxt.isEnabled = creationMode
             addPlanActionPlanTxt.isEnabled = creationMode
         }
@@ -261,7 +275,6 @@ class PlanActionsActivity : BaseActivity() {
             System.currentTimeMillis()
         }
     }
-
     private fun showDatePickerDialog() {
         val currentDate = binding.addPlanActionDateTxt.text.toString()
         val calendar = Calendar.getInstance()
@@ -274,7 +287,7 @@ class PlanActionsActivity : BaseActivity() {
                     calendar.time = date
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Erreur lors du parsing de la date : ${e.message}")
+                LogUtils.e(TAG, "Erreur lors du parsing de la date : ${e.message}")
             }
         }
 
@@ -304,7 +317,7 @@ class PlanActionsActivity : BaseActivity() {
 
 
     private fun navigateToMainActivity() {
-        Log.d(TAG, "Navigating to MainActivity")
+        LogUtils.d(TAG, "Navigating to MainActivity")
         Intent(this, LoginActivity::class.java).also {
             it.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(it)
@@ -312,14 +325,14 @@ class PlanActionsActivity : BaseActivity() {
         }
     }
     private fun navigateToSelectEntryActivity() {
-        Log.d(TAG, "Navigating to SelectEntryActivity")
+        LogUtils.d(TAG, "Navigating to SelectEntryActivity")
         Intent(this, SelectEntryActivity::class.java).also {
             startActivity(it)
             finish()
         }
     }
     private fun navigateToPrevScreen() {
-        Log.d(TAG, "Navigating to activity précédente")
+        LogUtils.d(TAG, "Navigating to activity précédente")
 
         setResult(RESULT_OK)
         finish()
@@ -346,10 +359,6 @@ class PlanActionsActivity : BaseActivity() {
     }
 
 
-
-    private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-    }
 
     /**
      * Affiche un message de succès sous forme de Snackbar.

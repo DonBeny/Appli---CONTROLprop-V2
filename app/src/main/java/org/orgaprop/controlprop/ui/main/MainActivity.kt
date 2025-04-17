@@ -33,7 +33,7 @@ class MainActivity : AppCompatActivity() {
     private var isInitializationComplete = false
 
     companion object {
-        const val TAG = "LaunchActivity"
+        const val TAG = "MainActivity"
     }
 
 

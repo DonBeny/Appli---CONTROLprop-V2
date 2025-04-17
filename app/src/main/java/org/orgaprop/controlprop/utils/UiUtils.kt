@@ -2,14 +2,18 @@ package org.orgaprop.controlprop.utils
 
 import android.app.Activity
 import android.content.Context
+import android.content.res.ColorStateList
 import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
+import androidx.core.content.ContextCompat
+import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
 import com.google.android.material.snackbar.Snackbar
 import org.orgaprop.controlprop.R
@@ -17,19 +21,6 @@ import org.orgaprop.controlprop.R
 object UiUtils {
 
     private var currentDialog: AlertDialog? = null
-
-    @JvmStatic
-    fun showWait(activity: Activity, waitImage: ImageView, show: Boolean) {
-        runOnMainThread { waitImage.visibility = if (show) View.VISIBLE else View.INVISIBLE }
-    }
-
-    @JvmStatic
-    fun disableOption(vararg views: View) {
-        views.forEach { view ->
-            view.isEnabled = false
-            view.isClickable = false
-        }
-    }
 
     /**
      * Ferme le dialogue actuellement affiché.
@@ -53,14 +44,6 @@ object UiUtils {
         runOnMainThread { Toast.makeText(context, message, Toast.LENGTH_SHORT).show() }
     }
 
-    @JvmStatic
-    fun toggleWaitingState(waitingView: View, mainLayout: View, show: Boolean) {
-        runOnMainThread {
-            waitingView.visibility = if (show) View.VISIBLE else View.GONE
-            mainLayout.isEnabled = !show
-        }
-    }
-
 
 
     @JvmStatic
@@ -71,11 +54,19 @@ object UiUtils {
     ) {
         runOnMainThread {
             currentDialog?.dismiss()
-            currentDialog = AlertDialog.Builder(context)
+            currentDialog = AlertDialog.Builder(context, R.style.CustomAlertDialogTheme)
                 .apply { title?.let { setTitle(it) } }
                 .setMessage(message)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+                .setPositiveButton(R.string.btn_close, ) { dialog, _ -> dialog.dismiss() }
+                .create()
+                .also { dialog ->
+                    dialog.show()
+
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                        setTextColor(context.getColor(R.color.main_ctrl_prop))
+                        isAllCaps = false
+                    }
+                }
         }
     }
 
@@ -87,11 +78,18 @@ object UiUtils {
     ) {
         runOnMainThread {
             currentDialog?.dismiss()
-            currentDialog = AlertDialog.Builder(context)
+            currentDialog = AlertDialog.Builder(context, R.style.CustomAlertDialogTheme)
                 .apply { titleId?.let { setTitle(it) } }
                 .setMessage(messageId)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+                .setPositiveButton(R.string.btn_close, ) { dialog, _ -> dialog.dismiss() }
+                .create()
+                .also { dialog ->
+                    dialog.show()
+
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                        isAllCaps = false
+                    }
+                }
         }
     }
 
@@ -104,13 +102,20 @@ object UiUtils {
     ) {
         runOnMainThread {
             currentDialog?.dismiss()
-            currentDialog = AlertDialog.Builder(context)
+            currentDialog = AlertDialog.Builder(context, R.style.CustomAlertDialogTheme)
                 .apply { title?.let { setTitle(it) } }
                 .setMessage(message)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     positiveAction?.invoke()
                 }
-                .show()
+                .create()
+                .also { dialog ->
+                    dialog.show()
+
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                        isAllCaps = false
+                    }
+                }
         }
     }
 
@@ -123,13 +128,20 @@ object UiUtils {
     ) {
         runOnMainThread {
             currentDialog?.dismiss()
-            currentDialog = AlertDialog.Builder(context)
+            currentDialog = AlertDialog.Builder(context, R.style.CustomAlertDialogTheme)
                 .apply { titleId?.let { setTitle(it) } }
                 .setMessage(messageId)
                 .setPositiveButton(android.R.string.ok) { _, _ ->
                     positiveAction?.invoke()
                 }
-                .show()
+                .create()
+                .also { dialog ->
+                    dialog.show()
+
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                        isAllCaps = false
+                    }
+                }
         }
     }
 
@@ -165,13 +177,26 @@ object UiUtils {
     ) {
         runOnMainThread {
             currentDialog?.dismiss()
-            currentDialog = AlertDialog.Builder(context)
+            currentDialog = AlertDialog.Builder(context, R.style.CustomAlertDialogTheme)
                 .apply { title?.let { setTitle(it) } }
                 .setMessage(message)
                 .setPositiveButton(positiveButtonText) { _, _ -> positiveAction() }
                 .setNegativeButton(negativeButtonText) { _, _ -> negativeAction?.invoke() }
                 .setCancelable(false)
-                .show()
+                .create()
+                .also { dialog ->
+                    dialog.show()
+
+                    dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                        setTextColor(context.getColor(R.color.main_ctrl_prop))
+                        isAllCaps = false
+                    }
+
+                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.apply {
+                        setTextColor(context.getColor(R.color.text_secondary_light))
+                        isAllCaps = false
+                    }
+                }
         }
     }
 
@@ -182,18 +207,32 @@ object UiUtils {
         context: Context,
         message: String,
         title: String? = null,
-        cancelable: Boolean = false
+        cancelable: Boolean = false,
     ): AlertDialog {
         return AlertDialog.Builder(context).apply {
             title?.let { setTitle(it) }
-            setView(R.layout.dialog_progress).apply {
-                // Layout personnalisé à créer (voir ci-dessous)
-            }
+            setView(R.layout.dialog_progress)
             setCancelable(cancelable)
-        }.show().also {
-            currentDialog = it
-            // Optionnel: Configurer le message ici si besoin
-            it.findViewById<TextView>(R.id.progress_message)?.text = message
+
+            if (cancelable) {
+                setPositiveButton(R.string.btn_close) { dialog, _ -> dialog.dismiss() }
+            }
+        }.show().also { dialog ->
+            dialog.show()
+            currentDialog = dialog
+
+            dialog.findViewById<TextView>(R.id.progress_message)?.apply {
+                text = message
+                setTextColor(context.getColor(R.color.text_primary_light))
+            }
+
+            dialog.findViewById<ProgressBar>(R.id.progress_bar)?.apply {
+                indeterminateTintList = ColorStateList.valueOf(context.getColor(R.color.main_ctrl_prop))
+            }
+
+            dialog.window?.apply {
+                setBackgroundDrawableResource(R.drawable.progress_dialog_background)
+            }
         }
     }
 
@@ -212,17 +251,31 @@ object UiUtils {
         view: View,
         message: String,
         duration: Int = Snackbar.LENGTH_LONG,
-        actionText: String? = null,
-        action: (() -> Unit)? = null
+        actionText: String? = view.context.getString(R.string.btn_close),
+        action: (() -> Unit)? = null,
     ) {
-        val snackbar = Snackbar.make(view, message, duration)
+        val durationValue = if (action == null) duration else Snackbar.LENGTH_INDEFINITE
+        val snackbar = Snackbar.make(view, message, durationValue)
 
-        if (actionText != null && action != null) {
-            snackbar.setAction(actionText) { action() }
+        if (action != null) {
+            snackbar.setAction(actionText) { action.invoke() }
+            snackbar.setActionTextColor(view.context.getColor(R.color._white))
+        } else {
+            snackbar.setAction(actionText) { snackbar.dismiss() }
+            snackbar.setActionTextColor(view.context.getColor(R.color._white))
         }
 
-        //snackbar.setBackgroundTint(view.context.getColor(R.color.error_background))
-        //snackbar.setTextColor(view.context.getColor(R.color.error_text))
+        snackbar.setBackgroundTint(view.context.getColor(R.color.design_default_color_error))
+        snackbar.setTextColor(view.context.getColor(R.color._white))
+
+        val snackbarView = snackbar.view
+        snackbarView.elevation = 6f
+
+        snackbarView.background = ContextCompat.getDrawable(view.context, R.drawable.snackbar_background)
+
+        val textView = snackbarView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        textView.maxLines = 3
+
         snackbar.show()
     }
     /**
@@ -238,6 +291,21 @@ object UiUtils {
         duration: Int = Snackbar.LENGTH_SHORT
     ) {
         val snackbar = Snackbar.make(view, message, duration)
+
+        snackbar.setAction(R.string.btn_close) { snackbar.dismiss() }
+        snackbar.setActionTextColor(view.context.getColor(R.color._white))
+
+        snackbar.setBackgroundTint(view.context.getColor(R.color.text_secondary_light))
+        snackbar.setTextColor(view.context.getColor(R.color._white))
+
+        val snackbarView = snackbar.view
+        snackbarView.elevation = 6f
+
+        snackbarView.background = ContextCompat.getDrawable(view.context, R.drawable.snackbar_background)
+
+        val textView = snackbarView.findViewById<TextView>(com.google.android.material.R.id.snackbar_text)
+        textView.maxLines = 3
+
         snackbar.show()
     }
 
@@ -254,8 +322,18 @@ object UiUtils {
         duration: Int = Snackbar.LENGTH_SHORT
     ) {
         val snackbar = Snackbar.make(view, message, duration)
-        //snackbar.setBackgroundTint(view.context.getColor(R.color.success_background))
-        //snackbar.setTextColor(view.context.getColor(R.color.success_text))
+
+        snackbar.setAction(R.string.btn_close) { snackbar.dismiss() }
+        snackbar.setActionTextColor(view.context.getColor(R.color._white))
+
+        snackbar.setBackgroundTint(view.context.getColor(R.color._light_green))
+        snackbar.setTextColor(view.context.getColor(R.color._white))
+
+        val snackbarView = snackbar.view
+        snackbarView.elevation = 6f
+
+        snackbarView.background = ContextCompat.getDrawable(view.context, R.drawable.snackbar_background)
+
         snackbar.show()
     }
 

@@ -12,6 +12,7 @@ import org.json.JSONObject
 import org.orgaprop.controlprop.managers.SelectEntryManager
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.ui.selectEntry.SelectListActivity
+import org.orgaprop.controlprop.utils.LogUtils
 
 class SelectEntryViewModel(
     private val selectEntryManager: SelectEntryManager
@@ -109,7 +110,7 @@ class SelectEntryViewModel(
 
 
     fun handleSelectedItem(item: SelectItem) {
-        //Log.d(TAG, "handleSelectedItem: Item ${item.type} selected: ${item.name}")
+        LogUtils.d(TAG, "handleSelectedItem: Item ${item.type} selected")
 
         when (item.type) {
             SelectListActivity.SELECT_LIST_TYPE_AGC -> {
@@ -160,19 +161,31 @@ class SelectEntryViewModel(
      * @param item Élément de recherche sélectionné
      */
     private fun handleSearchItem(item: SelectItem) {
+        LogUtils.json(TAG, "handleSearchItem item:",  item)
+
         try {
             val t = JSONObject(item.comment)
+            val agency = t.getJSONObject("agency")
+            val group = t.getJSONObject("groupe")
 
-            _selectedAgence.value = t.getJSONObject("agency").getString("txt")
-            _selectedAgenceId.value = t.getJSONObject("agency").getInt("id")
+            LogUtils.json(TAG, "handleSearchItem t:", t)
+            LogUtils.json(TAG, "handleSearchItem agency:", agency)
+            LogUtils.json(TAG, "handleSearchItem group:", group)
 
-            _selectedGroupement.value = t.getJSONObject("group").getString("txt")
-            _selectedGroupementId.value = t.getJSONObject("group").getInt("id")
+            _selectedAgence.value = agency.getString("txt")
+            _selectedAgenceId.value = agency.getInt("id")
 
-            _selectedResidence.value = "${item.ref} -- ${item.name} -- Entrée ${item.entry}"
+            _selectedGroupement.value = group.getString("txt")
+            _selectedGroupementId.value = group.getInt("id")
+
+            val residence = "${item.ref} -- ${item.name} -- Entrée ${item.entry}"
+
+            LogUtils.json(TAG, "handleSearchItem residence:", residence)
+
+            _selectedResidence.value = residence
             _selectedResidenceId.value = item.id
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing search result: ${e.message}")
+            LogUtils.e(TAG, "Error parsing search result: ${e.message}")
             _errorMessage.value = "Erreur lors du traitement du résultat de recherche"
         }
     }
@@ -196,7 +209,7 @@ class SelectEntryViewModel(
         this.idMbr = idMbr
         this.adrMac = adrMac
 
-        Log.d(TAG, "setUserCredentials: idMbr: ${this.idMbr}, adrMac: ${this.adrMac}")
+        LogUtils.d(TAG, "setUserCredentials: idMbr: ${this.idMbr}, adrMac: ${this.adrMac}")
     }
 
 }

@@ -12,6 +12,7 @@ import org.json.JSONObject
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.ui.selectEntry.SelectListActivity
+import org.orgaprop.controlprop.utils.LogUtils
 
 @Parcelize
 data class SelectItem(
@@ -29,7 +30,7 @@ data class SelectItem(
     val comment: String = "",
     val type: String = "",
     val prop: Prop? = null,
-    val referents: Referents? = null,
+    val referents: ObjReferents? = null,
     val saved: Boolean = false,
     val signed: Boolean = false,
     val signatures: ObjSignature? = null,
@@ -47,12 +48,12 @@ data class SelectItem(
                     type = type
                 ).also { it.validate() }
             } catch (e: JSONException) {
-                Log.e(TAG, "Erreur lors du parsing de l'agence", e)
+                LogUtils.e(TAG, "Erreur lors du parsing de l'agence", e)
                 throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format d'agence invalide", e)
             } catch (e: BaseException) {
                 throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Erreur inattendue lors du parsing de l'agence", e)
+                LogUtils.e(TAG, "Erreur inattendue lors du parsing de l'agence", e)
                 throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de l'analyse de l'agence", e)
             }
         }
@@ -65,12 +66,12 @@ data class SelectItem(
                     type = type
                 ).also { it.validate() }
             } catch (e: JSONException) {
-                Log.e(TAG, "Erreur lors du parsing du groupe", e)
+                LogUtils.e(TAG, "Erreur lors du parsing du groupe", e)
                 throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format de groupe invalide", e)
             } catch (e: BaseException) {
                 throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Erreur inattendue lors du parsing du groupe", e)
+                LogUtils.e(TAG, "Erreur inattendue lors du parsing du groupe", e)
                 throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de l'analyse du groupe", e)
             }
         }
@@ -81,7 +82,7 @@ data class SelectItem(
                     try {
                         Prop.fromJson(propJson)
                     } catch (e: BaseException) {
-                        Log.e(TAG, "Erreur lors du parsing des propriétés", e)
+                        LogUtils.e(TAG, "Erreur lors du parsing des propriétés", e)
                         null
                     }
                 }
@@ -91,7 +92,7 @@ data class SelectItem(
                     try {
                         parseReferentsFromJson(it)
                     } catch (e: BaseException) {
-                        Log.e(TAG, "Erreur lors du parsing des référents", e)
+                        LogUtils.e(TAG, "Erreur lors du parsing des référents", e)
                         null
                     }
                 }
@@ -114,12 +115,12 @@ data class SelectItem(
                     referents = referents
                 ).also { it.validate() }
             } catch (e: JSONException) {
-                Log.e(TAG, "Erreur lors du parsing de la résidence", e)
+                LogUtils.e(TAG, "Erreur lors du parsing de la résidence", e)
                 throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format de résidence invalide", e)
             } catch (e: BaseException) {
                 throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Erreur inattendue lors du parsing de la résidence", e)
+                LogUtils.e(TAG, "Erreur inattendue lors du parsing de la résidence", e)
                 throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de l'analyse de la résidence", e)
             }
         }
@@ -127,12 +128,11 @@ data class SelectItem(
         fun fromSearchJson(json: JSONObject, type: String): SelectItem {
             try {
                 val item = fromResidenceJson(json, type)
-                // Traitement spécifique aux résultats de recherche si nécessaire
                 return item
             } catch (e: BaseException) {
                 throw e
             } catch (e: Exception) {
-                Log.e(TAG, "Erreur lors du parsing du résultat de recherche", e)
+                LogUtils.e(TAG, "Erreur lors du parsing du résultat de recherche", e)
                 throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de l'analyse du résultat de recherche", e)
             }
         }
@@ -151,18 +151,16 @@ data class SelectItem(
                             SelectListActivity.SELECT_LIST_TYPE_RSD -> fromResidenceJson(jsonItem, type)
                             SelectListActivity.SELECT_LIST_TYPE_SEARCH -> fromSearchJson(jsonItem, type)
                             else -> {
-                                Log.e(TAG, "Type inconnu: $type")
+                                LogUtils.e(TAG, "Type inconnu: $type")
                                 throw BaseException(ErrorCodes.INVALID_DATA, "Type de liste inconnu: $type")
                             }
                         }
 
                         items.add(item)
                     } catch (e: BaseException) {
-                        Log.e(TAG, "Erreur lors du parsing de l'élément à l'index $i", e)
-                        // On continue avec les autres éléments
+                        LogUtils.e(TAG, "Erreur lors du parsing de l'élément à l'index $i", e)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Erreur inattendue lors du parsing de l'élément à l'index $i", e)
-                        // On continue avec les autres éléments
+                        LogUtils.e(TAG, "Erreur inattendue lors du parsing de l'élément à l'index $i", e)
                     }
                 }
 
@@ -179,7 +177,7 @@ data class SelectItem(
             val grille = JSONArray(grilleJson)
             grille.length() > 0 && hasValidZoneData(grille)
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la validation de la grille", e)
+            LogUtils.e(TAG, "Erreur lors de la validation de la grille", e)
             false
         }
     }
@@ -193,40 +191,67 @@ data class SelectItem(
                             zoneObj.has("elements") &&
                             zoneObj.getJSONArray("elements").toString().isNotEmpty()
                 } catch (e: Exception) {
-                    Log.e(TAG, "Erreur lors de la validation des données de zone à l'index $i", e)
+                    LogUtils.e(TAG, "Erreur lors de la validation des données de zone à l'index $i", e)
                     false
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la validation des données de zone", e)
+            LogUtils.e(TAG, "Erreur lors de la validation des données de zone", e)
             false
         }
     }
 
     fun getZoneElements(zoneId: Int): List<ObjElement>? {
+        LogUtils.d(TAG, "getZoneElements: Getting elements for zone $zoneId")
+
         return try {
-            prop?.ctrl?.getGrilleAsJsonArray()?.let { grille ->
-                (0 until grille.length()).firstNotNullOfOrNull { i ->
-                    grille.optJSONObject(i)?.takeIf { it.optInt("zoneId") == zoneId }
-                }
-                    ?.optJSONArray("elements")
-                    ?.toString()
-                    ?.let { elementsJson ->
-                        try {
-                            Gson().fromJson(
-                                elementsJson,
-                                object : TypeToken<List<ObjElement>>() {}.type
-                            )
-                        } catch (e: JsonSyntaxException) {
-                            Log.e(TAG, "Erreur lors de la conversion des éléments de zone", e)
-                            throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format d'éléments de zone invalide", e)
-                        }
+            val grille = prop?.ctrl?.getGrilleAsJsonArray()
+
+            if (grille == null) {
+                LogUtils.d(TAG, "getZoneElements: Grille is null")
+                return null
+            }
+
+            val firstItem = if (grille.length() > 0) grille.optJSONObject(0) else null
+            if (firstItem != null && firstItem.has("zoneId")) {
+                LogUtils.d(TAG, "getZoneElements: Grille has zone structure")
+
+                val zoneObject = (0 until grille.length())
+                    .map { grille.optJSONObject(it) }
+                    .firstOrNull { it?.optInt("zoneId") == zoneId }
+
+                zoneObject?.optJSONArray("elements")?.toString()?.let { elementsJson ->
+                    LogUtils.json(TAG, "getZoneElements: Found elements for zone $zoneId:", elementsJson)
+                    try {
+                        Gson().fromJson<List<ObjElement>>(
+                            elementsJson,
+                            object : TypeToken<List<ObjElement>>() {}.type
+                        )
+                    } catch (e: JsonSyntaxException) {
+                        LogUtils.e(TAG, "Erreur lors de la conversion des éléments de zone", e)
+                        throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format d'éléments de zone invalide", e)
                     }
+                }
+            } else {
+                LogUtils.d(TAG, "getZoneElements: Grille has direct elements structure")
+
+                val grilleStr = grille.toString()
+                LogUtils.json(TAG, "getZoneElements: Treating as direct elements:", grilleStr)
+
+                try {
+                    Gson().fromJson<List<ObjElement>>(
+                        grilleStr,
+                        object : TypeToken<List<ObjElement>>() {}.type
+                    )
+                } catch (e: JsonSyntaxException) {
+                    LogUtils.e(TAG, "Erreur lors de la conversion directe des éléments", e)
+                    throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format d'éléments invalide", e)
+                }
             }
         } catch (e: BaseException) {
             throw e
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la récupération des éléments de zone", e)
+            LogUtils.e(TAG, "Erreur lors de la récupération des éléments de zone", e)
             null
         }
     }
@@ -272,12 +297,12 @@ data class SelectItem(
                         ctrl = Ctrl.fromJson(json.optJSONObject("ctrl") ?: JSONObject())
                     )
                 } catch (e: JSONException) {
-                    Log.e(TAG, "Erreur lors du parsing des propriétés", e)
+                    LogUtils.e(TAG, "Erreur lors du parsing des propriétés", e)
                     throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format de propriétés invalide", e)
                 } catch (e: BaseException) {
                     throw e
                 } catch (e: Exception) {
-                    Log.e(TAG, "Erreur inattendue lors du parsing des propriétés", e)
+                    LogUtils.e(TAG, "Erreur inattendue lors du parsing des propriétés", e)
                     throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de l'analyse des propriétés", e)
                 }
             }
@@ -302,10 +327,10 @@ data class SelectItem(
 
                         return Zones(proxiList, contraList)
                     } catch (e: JSONException) {
-                        Log.e(TAG, "Erreur lors du parsing des zones", e)
+                        LogUtils.e(TAG, "Erreur lors du parsing des zones", e)
                         throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format de zones invalide", e)
                     } catch (e: Exception) {
-                        Log.e(TAG, "Erreur inattendue lors du parsing des zones", e)
+                        LogUtils.e(TAG, "Erreur inattendue lors du parsing des zones", e)
                         throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de l'analyse des zones", e)
                     }
                 }
@@ -340,12 +365,12 @@ data class SelectItem(
                             grille = grille
                         )
                     } catch (e: JSONException) {
-                        Log.e(TAG, "Erreur lors du parsing du contrôle", e)
+                        LogUtils.e(TAG, "Erreur lors du parsing du contrôle", e)
                         throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format de contrôle invalide", e)
                     } catch (e: BaseException) {
                         throw e
                     } catch (e: Exception) {
-                        Log.e(TAG, "Erreur inattendue lors du parsing du contrôle", e)
+                        LogUtils.e(TAG, "Erreur inattendue lors du parsing du contrôle", e)
                         throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de l'analyse du contrôle", e)
                     }
                 }
@@ -359,7 +384,7 @@ data class SelectItem(
                             grille = grille.toString()
                         )
                     } catch (e: Exception) {
-                        Log.e(TAG, "Erreur lors de la création du contrôle à partir du tableau", e)
+                        LogUtils.e(TAG, "Erreur lors de la création du contrôle à partir du tableau", e)
                         throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de la création du contrôle", e)
                     }
                 }
@@ -375,7 +400,7 @@ data class SelectItem(
                     } catch (e: BaseException) {
                         throw e
                     } catch (e: Exception) {
-                        Log.e(TAG, "Erreur lors du parsing de la configuration", e)
+                        LogUtils.e(TAG, "Erreur lors du parsing de la configuration", e)
                         throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format de configuration invalide", e)
                     }
                 }
@@ -391,7 +416,7 @@ data class SelectItem(
                     } catch (e: BaseException) {
                         throw e
                     } catch (e: Exception) {
-                        Log.e(TAG, "Erreur lors du parsing de la date", e)
+                        LogUtils.e(TAG, "Erreur lors du parsing de la date", e)
                         throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format de date invalide", e)
                     }
                 }
@@ -401,10 +426,10 @@ data class SelectItem(
                 return try {
                     JSONArray(grille)
                 } catch (e: JSONException) {
-                    Log.e(TAG, "Erreur lors de la conversion de la grille en JSONArray", e)
+                    LogUtils.e(TAG, "Erreur lors de la conversion de la grille en JSONArray", e)
                     JSONArray()
                 } catch (e: Exception) {
-                    Log.e(TAG, "Erreur inattendue lors de la conversion de la grille", e)
+                    LogUtils.e(TAG, "Erreur inattendue lors de la conversion de la grille", e)
                     JSONArray()
                 }
             }

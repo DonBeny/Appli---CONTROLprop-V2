@@ -13,6 +13,7 @@ import org.orgaprop.controlprop.managers.SignatureManager
 import org.orgaprop.controlprop.models.ObjSignature
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.models.LoginData
+import org.orgaprop.controlprop.utils.LogUtils
 
 class SignatureViewModel(private val manager: SignatureManager) : ViewModel() {
 
@@ -43,13 +44,13 @@ class SignatureViewModel(private val manager: SignatureManager) : ViewModel() {
     fun saveSignatures(entry: SelectItem, signatureData: ObjSignature) {
         viewModelScope.launch {
             try {
-                Log.d(TAG, "Sauvegarde des signatures initiée pour l'entrée ${entry.id}")
+                LogUtils.json(TAG, "Sauvegarde des signatures initiée pour l'entrée", entry)
                 _signatureState.value = SignatureState.Loading
 
                 val result = manager.saveSignatures(entry, signatureData)
                 _signatureResult.value = result
 
-                Log.d(TAG, "Résultat de la sauvegarde des signatures: $result")
+                LogUtils.json(TAG, "Résultat de la sauvegarde des signatures:", result)
 
                 _signatureState.value = when(result) {
                     is SignatureManager.SignatureResult.Success -> SignatureState.Success
@@ -62,9 +63,10 @@ class SignatureViewModel(private val manager: SignatureManager) : ViewModel() {
                     }
                     is SignatureManager.SignatureResult.Error ->
                         SignatureState.Error(Exception(result.message))
+                    else -> SignatureState.Idle
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Erreur lors de la sauvegarde des signatures", e)
+                LogUtils.e(TAG, "Erreur lors de la sauvegarde des signatures", e)
                 _signatureState.value = SignatureState.Error(e)
                 _signatureResult.value = SignatureManager.SignatureResult.Error("Une erreur inattendue s'est produite: ${e.message}")
             }

@@ -167,10 +167,10 @@ class ConfigCtrlActivity: BaseActivity() {
         Log.d(TAG, "Launching GrilleCtrlActivity")
 
         val donn = JSONObject().apply {
-            put(PREF_SAVED_CONFIG_CTRL_VISIT, viewModel.ctrlInopine)
-            put(PREF_SAVED_CONFIG_CTRL_METEO, viewModel.meteoPerturbe)
-            put(PREF_SAVED_CONFIG_CTRL_PROD, viewModel.prodPresent)
-            put(PREF_SAVED_CONFIG_CTRL_AFF, viewModel.affConforme)
+            put(PREF_SAVED_CONFIG_CTRL_VISIT, viewModel.ctrlInopine.value)
+            put(PREF_SAVED_CONFIG_CTRL_METEO, viewModel.meteoPerturbe.value)
+            put(PREF_SAVED_CONFIG_CTRL_PROD, viewModel.prodPresent.value)
+            put(PREF_SAVED_CONFIG_CTRL_AFF, viewModel.affConforme.value)
         }
 
         setConfigCtrl(donn)

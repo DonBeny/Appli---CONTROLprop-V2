@@ -1,8 +1,9 @@
 package org.orgaprop.controlprop.ui
 
+import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
-import android.util.Log
+import android.view.inputmethod.InputMethodManager
 
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModel
@@ -20,6 +21,7 @@ import org.orgaprop.controlprop.sync.SyncUtils
 import org.orgaprop.controlprop.ui.login.repository.LoginRepository
 import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.sync.SyncManager
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.network.NetworkMonitor
 
 /**
@@ -79,10 +81,17 @@ abstract class BaseActivity : AppCompatActivity() {
             initializeComponents()
             setupComponents()
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de l'initialisation de l'activité", e)
+            LogUtils.e(TAG, "Erreur lors de l'initialisation de l'activité", e)
         }
 
     }
+
+    override fun onResume() {
+        super.onResume()
+        hideKeyboard()
+    }
+
+
 
     /**
      * Initialise les données partagées et les préférences.
@@ -104,9 +113,9 @@ abstract class BaseActivity : AppCompatActivity() {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
 
-            Log.d(TAG, "Préférences sécurisées initialisées")
+            LogUtils.d(TAG, "Préférences sécurisées initialisées")
         } catch (e: Exception) {
-            Log.e(
+            LogUtils.e(
                 TAG,
                 "Erreur lors de l'initialisation des préférences sécurisées, fallback sur préférences standard",
                 e
@@ -118,11 +127,11 @@ abstract class BaseActivity : AppCompatActivity() {
             try {
                 migrateSecureDataIfNeeded()
             } catch (e: Exception) {
-                Log.e(TAG, "Erreur lors de la migration des données sensibles", e)
+                LogUtils.e(TAG, "Erreur lors de la migration des données sensibles", e)
             }
         }
 
-        Log.d(TAG, "SharedPreferences initialisées")
+        LogUtils.d(TAG, "SharedPreferences initialisées")
     }
 
     /**
@@ -134,7 +143,7 @@ abstract class BaseActivity : AppCompatActivity() {
         val password = preferences.getString(PREF_SAVED_PASSWORD, null)
 
         if (!username.isNullOrEmpty() || !password.isNullOrEmpty()) {
-            Log.d(TAG, "Migration des données sensibles vers les préférences sécurisées")
+            LogUtils.d(TAG, "Migration des données sensibles vers les préférences sécurisées")
 
             securePreferences.edit().apply {
                 if (!username.isNullOrEmpty()) {
@@ -177,12 +186,25 @@ abstract class BaseActivity : AppCompatActivity() {
 
 
     /**
+     * Masque le clavier virtuel
+     */
+    protected fun hideKeyboard() {
+        val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+        val currentFocusView = currentFocus
+        if (currentFocusView != null) {
+            imm.hideSoftInputFromWindow(currentFocusView.windowToken, 0)
+        }
+    }
+
+
+
+    /**
      * Efface toutes les données stockées dans les préférences.
      */
     fun clearAllData() {
         preferences.edit().clear().apply()
         securePreferences.edit().clear().apply()
-        Log.d(TAG, "Toutes les données ont été effacées")
+        LogUtils.d(TAG, "Toutes les données ont été effacées")
     }
 
 
@@ -211,9 +233,9 @@ abstract class BaseActivity : AppCompatActivity() {
                 apply()
             }
 
-            Log.d(TAG, "Données utilisateur enregistrées avec succès")
+            LogUtils.d(TAG, "Données utilisateur enregistrées avec succès")
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de l'enregistrement des données utilisateur", e)
+            LogUtils.e(TAG, "Erreur lors de l'enregistrement des données utilisateur", e)
         }
     }
 
@@ -228,7 +250,7 @@ abstract class BaseActivity : AppCompatActivity() {
             try {
                 return gson.fromJson(userDataJson, LoginData::class.java)
             } catch (e: Exception) {
-                Log.e(TAG, "Erreur lors de la conversion de userData en LoginData", e)
+                LogUtils.e(TAG, "Erreur lors de la conversion de userData en LoginData", e)
             }
         }
         return null
@@ -249,12 +271,13 @@ abstract class BaseActivity : AppCompatActivity() {
                 remove(PREF_SAVED_CONFIG_CTRL)
                 remove(PREF_SAVED_LIST_AGENTS)
                 remove(PREF_SAVED_LIST_PRESTATES)
+                remove(PREF_SAVED_LIST_RANDOM)
                 apply()
             }
 
-            Log.d(TAG, "Données utilisateur effacées avec succès")
+            LogUtils.d(TAG, "Données utilisateur effacées avec succès")
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de l'effacement des données utilisateur", e)
+            LogUtils.e(TAG, "Erreur lors de l'effacement des données utilisateur", e)
         }
     }
 
@@ -271,9 +294,9 @@ abstract class BaseActivity : AppCompatActivity() {
                 putString(PREF_SAVED_ENTRY_SELECTED, gson.toJson(entry))
                 apply()
             }
-            Log.d(TAG, "Entrée sélectionnée enregistrée: ID ${entry.id}")
+            LogUtils.json(TAG, "Entrée sélectionnée enregistrée:", entry)
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de l'enregistrement de l'entrée sélectionnée", e)
+            LogUtils.e(TAG, "Erreur lors de l'enregistrement de l'entrée sélectionnée", e)
         }
     }
 
@@ -289,32 +312,32 @@ abstract class BaseActivity : AppCompatActivity() {
                 gson.fromJson(json, SelectItem::class.java)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la récupération de l'entrée sélectionnée", e)
+            LogUtils.e(TAG, "Erreur lors de la récupération de l'entrée sélectionnée", e)
             null
         }
     }
+
+
 
     /**
      * Ajoute ou met à jour un contrôle en attente.
      *
      * @param entry Le contrôle à ajouter ou mettre à jour.
      */
-    fun addPendingControl(entry: SelectItem) {
-        try {
-            val currentControls = syncManager.getPendingControls().toMutableList()
+    fun addPendingControl(entry: SelectItem) : Boolean {
+        return try {
+            val result = syncManager.addOrUpdatePendingControl(entry)
 
-            // Vérifier si le contrôle existe déjà
-            val existingIndex = currentControls.indexOfFirst { it.id == entry.id }
-            if (existingIndex >= 0) {
-                currentControls[existingIndex] = entry
+            if (result) {
+                LogUtils.json(TAG, "addPendingControl: Contrôle en attente ajouté/mis à jour avec succès:", entry)
             } else {
-                currentControls.add(entry)
+                LogUtils.json(TAG, "addPendingControl: Échec de l'ajout/mise à jour du contrôle en attente:", entry)
             }
 
-            syncManager.savePendingControls(currentControls)
-            Log.d(TAG, "Contrôle en attente ajouté/mis à jour: ID ${entry.id}")
+            result
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de l'ajout du contrôle en attente", e)
+            LogUtils.e(TAG, "addPendingControl: Erreur lors de l'ajout du contrôle en attente", e)
+            false
         }
     }
     /**
@@ -334,9 +357,9 @@ abstract class BaseActivity : AppCompatActivity() {
         try {
             val updatedControls = syncManager.getPendingControls().filter { it.id != entryId }
             syncManager.savePendingControls(updatedControls)
-            Log.d(TAG, "Contrôle en attente supprimé: ID $entryId")
+            LogUtils.d(TAG, "Contrôle en attente supprimé: ID $entryId")
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la suppression du contrôle en attente", e)
+            LogUtils.e(TAG, "Erreur lors de la suppression du contrôle en attente", e)
         }
     }
     /**
@@ -346,8 +369,10 @@ abstract class BaseActivity : AppCompatActivity() {
      */
     fun triggerSync(immediate: Boolean = false) {
         SyncUtils.scheduleSync(this, immediate)
-        Log.d(TAG, "Synchronisation déclenchée (immédiate: $immediate)")
+        LogUtils.d(TAG, "Synchronisation déclenchée (immédiate: $immediate)")
     }
+
+
 
     /**
      * Définit l'état du paramètre Proxi.
@@ -359,7 +384,7 @@ abstract class BaseActivity : AppCompatActivity() {
             putBoolean(PREF_SAVED_PROXI, proxi)
             apply()
         }
-        Log.d(TAG, "Paramètre Proxi défini: $proxi")
+        LogUtils.d(TAG, "Paramètre Proxi défini: $proxi")
     }
     /**
      * Indique si le paramètre Proxi est activé.
@@ -369,6 +394,8 @@ abstract class BaseActivity : AppCompatActivity() {
     fun withProxi(): Boolean {
         return preferences.getBoolean(PREF_SAVED_PROXI, false)
     }
+
+
 
     /**
      * Définit l'état du paramètre Contract.
@@ -380,7 +407,7 @@ abstract class BaseActivity : AppCompatActivity() {
             putBoolean(PREF_SAVED_CONTRACT, contract)
             apply()
         }
-        Log.d(TAG, "Paramètre Contract défini: $contract")
+        LogUtils.d(TAG, "Paramètre Contract défini: $contract")
     }
     /**
      * Indique si le paramètre Contract est activé.
@@ -390,6 +417,8 @@ abstract class BaseActivity : AppCompatActivity() {
     fun withContract(): Boolean {
         return preferences.getBoolean(PREF_SAVED_CONTRACT, false)
     }
+
+
 
     /**
      * Enregistre la liste des entrées.
@@ -402,9 +431,10 @@ abstract class BaseActivity : AppCompatActivity() {
                 putString(PREF_SAVED_ENTRY_LIST, gson.toJson(entryList))
                 apply()
             }
-            Log.d(TAG, "Liste d'entrées enregistrée: ${entryList.size} éléments")
+            LogUtils.d(TAG, "Liste d'entrées enregistrée: ${entryList.size} éléments")
+            LogUtils.json(TAG, "Liste d'entrées enregistrée:", entryList)
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de l'enregistrement de la liste d'entrées", e)
+            LogUtils.e(TAG, "Erreur lors de l'enregistrement de la liste d'entrées", e)
         }
     }
 
@@ -419,10 +449,37 @@ abstract class BaseActivity : AppCompatActivity() {
 
             if (entryListJson != null) {
                 val type = object : TypeToken<List<SelectItem>>() {}.type
+                LogUtils.json(TAG, "Liste d'entrées récupérée:", entryListJson)
                 return gson.fromJson(entryListJson, type)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la récupération de la liste d'entrées", e)
+            LogUtils.e(TAG, "Erreur lors de la récupération de la liste d'entrées", e)
+        }
+        return emptyList()
+    }
+
+    fun setRandomList(randomList: List<SelectItem>) {
+        try {
+            preferences.edit().apply {
+                putString(PREF_SAVED_LIST_RANDOM, gson.toJson(randomList))
+                apply()
+            }
+            LogUtils.json(TAG, "Liste aléatoire enregistrée: ${randomList.size} éléments", randomList)
+        } catch (e: Exception) {
+            LogUtils.e(TAG, "Erreur lors de l'enregistrement de la liste aléatoire", e)
+        }
+    }
+
+    fun getRandomList(): List<SelectItem> {
+        try {
+            val randomListJson = preferences.getString(PREF_SAVED_LIST_RANDOM, null)
+            if (randomListJson != null) {
+                val type = object : TypeToken<List<SelectItem>>() {}.type
+                LogUtils.json(TAG, "Liste aléatoire récupérée:", randomListJson)
+                return gson.fromJson(randomListJson, type)
+            }
+        } catch (e: Exception) {
+            LogUtils.e(TAG, "Erreur lors de la récupération de la liste aléatoire", e)
         }
         return emptyList()
     }
@@ -439,7 +496,7 @@ abstract class BaseActivity : AppCompatActivity() {
             putString(PREF_SAVED_TYPE_CTRL, typeCtrl)
             apply()
         }
-        Log.d(TAG, "Type de contrôle défini: $typeCtrl")
+        LogUtils.d(TAG, "Type de contrôle défini: $typeCtrl")
     }
 
     /**
@@ -464,9 +521,9 @@ abstract class BaseActivity : AppCompatActivity() {
                 putString(PREF_SAVED_CONFIG_CTRL, configCtrl.toString())
                 apply()
             }
-            Log.d(TAG, "Configuration de contrôle enregistrée")
+            LogUtils.json(TAG, "Configuration de contrôle enregistrée", configCtrl)
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de l'enregistrement de la configuration de contrôle", e)
+            LogUtils.e(TAG, "Erreur lors de l'enregistrement de la configuration de contrôle", e)
         }
     }
 
@@ -480,10 +537,12 @@ abstract class BaseActivity : AppCompatActivity() {
             val configCtrlJson = preferences.getString(PREF_SAVED_CONFIG_CTRL, null)
 
             if (configCtrlJson != null) {
+                LogUtils.json(TAG, "Configuration de contrôle récupérée", configCtrlJson)
+
                 return JSONObject(configCtrlJson)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la récupération de la configuration de contrôle", e)
+            LogUtils.e(TAG, "Erreur lors de la récupération de la configuration de contrôle", e)
         }
         return null
     }
@@ -501,9 +560,9 @@ abstract class BaseActivity : AppCompatActivity() {
                 putString(PREF_SAVED_LIST_AGENTS, listAgents.toString())
                 apply()
             }
-            Log.d(TAG, "Liste des agents enregistrée")
+            LogUtils.json(TAG, "Liste des agents enregistrée:", listAgents)
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de l'enregistrement de la liste des agents", e)
+            LogUtils.e(TAG, "Erreur lors de l'enregistrement de la liste des agents", e)
         }
     }
 
@@ -517,10 +576,12 @@ abstract class BaseActivity : AppCompatActivity() {
             val listAgentsJson = preferences.getString(PREF_SAVED_LIST_AGENTS, null)
 
             if (listAgentsJson != null) {
+                LogUtils.json(TAG, "Liste des agents récupérée:", listAgentsJson)
+
                 return JSONObject(listAgentsJson)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la récupération de la liste des agents", e)
+            LogUtils.e(TAG, "Erreur lors de la récupération de la liste des agents", e)
         }
         return null
     }
@@ -536,9 +597,9 @@ abstract class BaseActivity : AppCompatActivity() {
                 putString(PREF_SAVED_LIST_PRESTATES, listPrestates.toString())
                 apply()
             }
-            Log.d(TAG, "Liste des prestataires enregistrée")
+            LogUtils.json(TAG, "Liste des prestataires enregistrée:", listPrestates)
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de l'enregistrement de la liste des prestataires", e)
+            LogUtils.e(TAG, "Erreur lors de l'enregistrement de la liste des prestataires", e)
         }
     }
 
@@ -552,10 +613,12 @@ abstract class BaseActivity : AppCompatActivity() {
             val listPrestatesJson = preferences.getString(PREF_SAVED_LIST_PRESTATES, null)
 
             if (listPrestatesJson != null) {
+                LogUtils.json(TAG, "Liste des prestataires récupérée:", listPrestatesJson)
+
                 return JSONObject(listPrestatesJson)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur lors de la récupération de la liste des prestataires", e)
+            LogUtils.e(TAG, "Erreur lors de la récupération de la liste des prestataires", e)
         }
         return null
     }

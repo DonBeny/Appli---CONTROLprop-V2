@@ -1,17 +1,19 @@
 package org.orgaprop.controlprop.viewmodels
 
 import android.graphics.Bitmap
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.utils.FileUtils
+import org.orgaprop.controlprop.utils.LogUtils
 
 class AddCommentViewModel : ViewModel() {
 
-    private val TAG = "AddCommentViewModel"
+    companion object {
+        const val TAG = "AddCommentViewModel"
+    }
 
     private lateinit var userData: LoginData
 
@@ -42,8 +44,8 @@ class AddCommentViewModel : ViewModel() {
     }
 
     fun prepareCommentData() {
-        //Log.d(TAG, "prepareCommentData: Comment text: ${_commentText.value}")
-        //Log.d(TAG, "prepareCommentData: Image bitmap: ${_imageBitmap.value}")
+        LogUtils.d(TAG, "prepareCommentData: Comment text: ${_commentText.value}")
+        LogUtils.d(TAG, "prepareCommentData: Image bitmap: ${_imageBitmap.value}")
 
         _navigationEvent.value = NavigationEvent.SaveComment(
             commentText = _commentText.value,

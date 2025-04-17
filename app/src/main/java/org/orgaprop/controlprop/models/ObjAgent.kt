@@ -22,7 +22,7 @@ data class ObjAgent(
         fun fromJson(json: JSONObject): ObjAgent {
             try {
                 return ObjAgent(
-                    id = json.optInt("id", 0),
+                    id = json.optInt("id", -1),
                     name = json.optString("txt", ""),
                     type = json.optString("type", "agent")
                 ).also { it.validate() }
@@ -47,7 +47,7 @@ data class ObjAgent(
                     try {
                         val jsonObject = json.getJSONObject(key)
                         val objAgent = ObjAgent(
-                            id = jsonObject.optInt("id", 0),
+                            id = jsonObject.optInt("id", -1),
                             name = jsonObject.optString("name", ""),
                             type = jsonObject.optString("type", "agent")
                         ).also { it.validate() }
@@ -74,9 +74,6 @@ data class ObjAgent(
     }
 
     private fun validate() {
-        if (id <= 0) {
-            throw BaseException(ErrorCodes.INVALID_DATA, "ID d'agent invalide: $id")
-        }
         if (name.isBlank()) {
             throw BaseException(ErrorCodes.INVALID_DATA, "Nom d'agent manquant")
         }

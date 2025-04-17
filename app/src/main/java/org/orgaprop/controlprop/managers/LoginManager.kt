@@ -8,6 +8,7 @@ import org.json.JSONObject
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.utils.HttpTask
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.network.HttpTaskConstantes
 import java.io.IOException
 
@@ -42,12 +43,17 @@ class LoginManager(
                 put("appVersion", appVersion)
             }.toString()
 
-            Log.d(TAG, "login paramsPost : $paramsPost")
+            LogUtils.json(TAG, "login paramsPost:", paramsPost)
 
             // Exécuter la requête HTTP
-            val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION_CBL_LOGIN, "", paramsPost)
+            val response = httpTask.executeHttpTask(
+                HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION,
+                HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION_CBL_LOGIN,
+                "",
+                paramsPost
+            )
 
-            Log.d(TAG, "login response : $response")
+            LogUtils.json(TAG, "login response:", response)
 
             JSONObject(response)
         }
@@ -77,7 +83,7 @@ class LoginManager(
 
             val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION_CBL_TEST, "", paramsPost)
 
-            Log.d(TAG, "checkLogin: response : $response")
+            LogUtils.json(TAG, "checkLogin: response", response)
 
             JSONObject(response)
         }
@@ -98,6 +104,9 @@ class LoginManager(
             }.toString()
 
             val response = httpTask.executeHttpTask(HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION, HttpTaskConstantes.HTTP_TASK_ACT_CONNEXION_CBL_LOGOUT, "", paramsPost)
+
+            LogUtils.json(TAG, "logout: response", response)
+
             JSONObject(response)
         }
     }
@@ -121,13 +130,13 @@ class LoginManager(
         return try {
             block()
         } catch (e: IOException) {
-            Log.e(TAG, "Erreur réseau: ${e.message}", e)
+            LogUtils.e(TAG, "Erreur réseau: ${e.message}", e)
             throw LoginException(ErrorCodes.NETWORK_ERROR, e)
         } catch (e: JSONException) {
-            Log.e(TAG, "Réponse JSON invalide: ${e.message}", e)
+            LogUtils.e(TAG, "Réponse JSON invalide: ${e.message}", e)
             throw LoginException(ErrorCodes.INVALID_RESPONSE, e)
         } catch (e: Exception) {
-            Log.e(TAG, "Erreur inconnue: ${e.message}", e)
+            LogUtils.e(TAG, "Erreur inconnue: ${e.message}", e)
             throw LoginException(ErrorCodes.UNKNOWN_ERROR, e)
         }
     }

@@ -10,6 +10,7 @@ import kotlinx.coroutines.launch
 import org.json.JSONObject
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
+import org.orgaprop.controlprop.sync.SyncManager
 import org.orgaprop.controlprop.ui.login.mappers.LoginResponseMapper
 import org.orgaprop.controlprop.ui.login.repository.LoginRepository
 import org.orgaprop.controlprop.ui.login.states.LoginState
@@ -18,11 +19,13 @@ import org.orgaprop.controlprop.ui.login.states.PermissionState
 import org.orgaprop.controlprop.ui.login.states.UiState
 import org.orgaprop.controlprop.ui.login.states.ValidationState
 import org.orgaprop.controlprop.ui.login.states.VersionState
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.network.NetworkMonitor
 
 class LoginViewModel(
     private val loginRepository: LoginRepository,
-    private val networkMonitor: NetworkMonitor
+    private val networkMonitor: NetworkMonitor,
+    private val syncManager: SyncManager
 ) : ViewModel() {
 
     private val TAG = "LoginViewModel"
@@ -95,6 +98,20 @@ class LoginViewModel(
                 val response = responseMapper.parseLoginResponse(responseJson)
 
                 if (response.status) {
+                    val pendingControls = syncManager.getPendingControls()
+                    if (pendingControls.isNotEmpty()) {
+                        when (val syncResult = syncManager.syncPendingControls()) {
+                            is SyncManager.SyncResult.SUCCESS ->
+                                LogUtils.d(TAG, "Synchronisation réussie après connexion")
+                            is SyncManager.SyncResult.PARTIAL_SUCCESS ->
+                                LogUtils.d(TAG, "Synchronisation partiellement réussie après connexion: ${syncResult.errors.size} erreurs")
+                            is SyncManager.SyncResult.FAILURE ->
+                                LogUtils.e(TAG, "Échec de la synchronisation après connexion")
+                            is SyncManager.SyncResult.NO_NETWORK ->
+                                LogUtils.e(TAG, "Pas de réseau pour synchroniser après connexion")
+                        }
+                    }
+
                     _loginState.postValue(LoginState.Success(response.data!!))
                 } else {
                     _loginState.postValue(LoginState.Error(response.error!!.txt))
@@ -147,7 +164,6 @@ class LoginViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             _loginState.postValue(LoginState.Loading)
             try {
-                // Vérifier la connexion réseau
                 if (!networkMonitor.isConnected()) {
                     _loginState.postValue(LoginState.Error("Aucune connexion réseau disponible"))
                     return@launch
@@ -157,9 +173,23 @@ class LoginViewModel(
                 val response = responseMapper.parseLoginResponse(responseJson)
 
                 if (response.status) {
+                    val pendingControls = syncManager.getPendingControls()
+                    if (pendingControls.isNotEmpty()) {
+                        when (val syncResult = syncManager.syncPendingControls()) {
+                            is SyncManager.SyncResult.SUCCESS ->
+                                LogUtils.d(TAG, "Synchronisation réussie après connexion")
+                            is SyncManager.SyncResult.PARTIAL_SUCCESS ->
+                                LogUtils.d(TAG, "Synchronisation partiellement réussie après connexion: ${syncResult.errors.size} erreurs")
+                            is SyncManager.SyncResult.FAILURE ->
+                                LogUtils.e(TAG, "Échec de la synchronisation après connexion")
+                            is SyncManager.SyncResult.NO_NETWORK ->
+                                LogUtils.d(TAG, "Pas de réseau pour synchroniser après connexion")
+                        }
+                    }
+
                     _loginState.postValue(LoginState.Success(response.data!!))
                 } else {
-                    _loginState.postValue(LoginState.Error(response.error!!.txt))
+                    _loginState.postValue(LoginState.Idle)
                 }
             } catch (e: BaseException) {
                 _loginState.postValue(LoginState.Error(getDetailedErrorMessage(e)))
@@ -194,8 +224,8 @@ class LoginViewModel(
                 username.isEmpty() && password.isEmpty() -> throw ValidationException("Le nom d'utilisateur et le mot de passe sont requis")
                 username.isEmpty() -> throw ValidationException("Le nom d'utilisateur est requis")
                 password.isEmpty() -> throw ValidationException("Le mot de passe est requis")
-                username.length < 3 -> throw ValidationException("Le nom d'utilisateur doit contenir au moins 3 caractères")
-                password.length < 6 -> throw ValidationException("Le mot de passe doit contenir au moins 6 caractères")
+                //username.length < 3 -> throw ValidationException("Le nom d'utilisateur doit contenir au moins 3 caractères")
+                //password.length < 6 -> throw ValidationException("Le mot de passe doit contenir au moins 6 caractères")
             }
             _validationState.postValue(ValidationState.Valid)
         } catch (e: ValidationException) {

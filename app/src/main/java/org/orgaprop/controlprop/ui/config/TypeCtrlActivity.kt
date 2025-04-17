@@ -13,12 +13,13 @@ import org.orgaprop.controlprop.databinding.ActivityTypeCtrlBinding
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.HomeActivity
 import org.orgaprop.controlprop.ui.login.LoginActivity
+import org.orgaprop.controlprop.ui.planActions.PlanActionsActivity
 import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
+import org.orgaprop.controlprop.utils.LogUtils
+import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.viewmodels.TypeCtrlViewModel
 
 class TypeCtrlActivity : BaseActivity() {
-
-    private val TAG = "TypeCtrlActivity"
 
     private lateinit var binding: ActivityTypeCtrlBinding
     private val viewModel: TypeCtrlViewModel by viewModel()
@@ -26,6 +27,8 @@ class TypeCtrlActivity : BaseActivity() {
     private var canOpenPlanActions: Boolean = false
 
     companion object {
+        private const val TAG = "TypeCtrlActivity"
+
         const val TYPE_CTRL_ACTIVITY_TAG_EDLE = "edle"
         const val TYPE_CTRL_ACTIVITY_TAG_CTRL = "complet"
         const val TYPE_CTRL_ACTIVITY_TAG_RANDOM = "random"
@@ -39,7 +42,7 @@ class TypeCtrlActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
 
         onBackInvokedDispatcher.registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT) {
-            Log.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
+            LogUtils.d(TAG, "handleOnBackPressed: Back Pressed via OnBackInvokedCallback")
             navigateToPrevScreen()
         }
     }
@@ -53,32 +56,32 @@ class TypeCtrlActivity : BaseActivity() {
         val userData = getUserData()
 
         if( userData == null ) {
-            Log.d(TAG, "initializeComponents: UserData is null")
+            LogUtils.d(TAG, "initializeComponents: UserData is null")
             navigateToMainActivity()
             return
         } else {
-            Log.d(TAG, "initializeComponents: UserData is not null")
+            LogUtils.d(TAG, "initializeComponents: UserData is not null")
         }
 
         val idMbr = userData.idMbr
         val adrMac = userData.adrMac
 
-        Log.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
+        LogUtils.d(TAG, "initializeComponents: idMbr: $idMbr, adrMac: $adrMac")
 
         viewModel.setUserCredentials(idMbr, adrMac)
     }
     override fun setupComponents() {
         val idRsd = getEntrySelected()?.id
 
-        Log.d(TAG, "setupComponents: idRsd: $idRsd")
+        LogUtils.d(TAG, "setupComponents: idRsd: $idRsd")
 
         if( idRsd == null ) {
-            Log.d(TAG, "setupComponents: idRsd is null")
-            showToast("Aucune entrée sélectionnée")
+            LogUtils.d(TAG, "setupComponents: idRsd is null")
+            UiUtils.showErrorSnackbar(binding.root, "Aucune entrée sélectionnée")
             navigateToPrevScreen()
             return
         } else {
-            Log.d(TAG, "setupComponents: idRsd is not null")
+            LogUtils.d(TAG, "setupComponents: idRsd is not null")
 
             setupObservers()
 
@@ -90,7 +93,41 @@ class TypeCtrlActivity : BaseActivity() {
     override fun setupListeners() {
         binding.typeCtrlActivityEdleTxt.setOnClickListener { navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_EDLE) }
         binding.typeCtrlActivityCpltTxt.setOnClickListener { navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_CTRL) }
-        binding.typeCtrlActivityRndTxt.setOnClickListener { navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_RANDOM) }
+        binding.typeCtrlActivityRndTxt.setOnClickListener {
+            val selectedEntry = getEntrySelected()
+            if (selectedEntry == null) {
+                UiUtils.showErrorSnackbar(
+                    binding.root,
+                    "Aucune entrée sélectionnée"
+                )
+                return@setOnClickListener
+            }
+
+            UiUtils.showProgressDialog(
+                this,
+                "Génération du contrôle aléatoire...",
+                "Veuillez patienter"
+            )
+
+            val entryList = getEntryList()
+
+            LogUtils.json(TAG, "setupListeners: entryList", entryList)
+
+            if (entryList.isEmpty()) {
+                UiUtils.dismissCurrentDialog()
+                UiUtils.showErrorSnackbar(
+                    binding.root,
+                    "Aucune entrée disponible"
+                )
+            }
+
+            viewModel.generateRandomControl(
+                selectedEntry,
+                entryList,
+                withProxi(),
+                withContract()
+            )
+        }
         binding.typeCtrlActivityPlanActTxt.setOnClickListener { navigateToPlanActionsActivity() }
         binding.typeCtrlActivityEdlsTxt.setOnClickListener { navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_EDLS) }
     }
@@ -101,12 +138,34 @@ class TypeCtrlActivity : BaseActivity() {
             binding.typeCtrlActivityPlanActTxt.isEnabled = canOpenPlanActions
             binding.typeCtrlActivityPlanActTxt.alpha = if (canOpenPlanActions) 1.0f else 0.5f
 
-            Log.d(TAG, "setupComponents: canOpenPlanActions updated to: $canOpenPlanActions")
+            LogUtils.d(TAG, "setupComponents: canOpenPlanActions updated to: $canOpenPlanActions")
         })
 
         viewModel.error.observe(this, Observer { errorPair ->
             errorPair?.let { (code, message) ->
-                showToast(message)
+                UiUtils.showErrorSnackbar(binding.root, message)
+            }
+        })
+
+        viewModel.randomGenerationCompleted.observe(this, Observer { success ->
+            // Fermer le dialogue de progression
+            UiUtils.dismissCurrentDialog()
+
+            if (success) {
+                // Sauvegarder la liste générée
+                val randomList = viewModel.getRandomControlList()
+                setRandomList(randomList)
+
+                // Naviguer vers l'écran suivant
+                navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_RANDOM)
+            } else {
+                // Afficher une erreur
+                viewModel.error.value?.let { (_, message) ->
+                    UiUtils.showErrorSnackbar(binding.root, message)
+                } ?: UiUtils.showErrorSnackbar(
+                    binding.root,
+                    "Impossible de générer le contrôle aléatoire"
+                )
             }
         })
     }
@@ -114,7 +173,7 @@ class TypeCtrlActivity : BaseActivity() {
 
 
     private fun navigateToPrevScreen() {
-        Log.d(TAG, "Navigating to SelectEntryActivity")
+        LogUtils.d(TAG, "Navigating to SelectEntryActivity")
         val intent = Intent(this, SelectEntryActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -122,7 +181,7 @@ class TypeCtrlActivity : BaseActivity() {
         finish()
     }
     private fun navigateToNextScreen(type: String) {
-        Log.d(TAG, "Navigating to ConfigCtrlActivity")
+        LogUtils.d(TAG, "Navigating to ConfigCtrlActivity")
 
         setTypeCtrl(type)
 
@@ -133,7 +192,7 @@ class TypeCtrlActivity : BaseActivity() {
     }
 
     private fun navigateToMainActivity() {
-        Log.d(TAG, "Navigating to MainActivity")
+        LogUtils.d(TAG, "Navigating to MainActivity")
         val intent = Intent(this, LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
@@ -141,20 +200,14 @@ class TypeCtrlActivity : BaseActivity() {
         finish()
     }
     private fun navigateToPlanActionsActivity() {
-        Log.d(TAG, "Navigating to PlanActionsActivity")
+        LogUtils.d(TAG, "Navigating to PlanActionsActivity")
 
         setTypeCtrl(TYPE_CTRL_ACTIVITY_TAG_LEVEE)
 
-        val intent = Intent(this, HomeActivity::class.java).apply {
+        val intent = Intent(this, PlanActionsActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)
-    }
-
-
-
-    private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
 }

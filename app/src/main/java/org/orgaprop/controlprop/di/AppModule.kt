@@ -24,6 +24,7 @@ import org.orgaprop.controlprop.security.SecureCredentialsManager
 import org.orgaprop.controlprop.sync.SyncManager
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.login.mappers.LoginResponseMapper
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.viewmodels.MainViewModel
 import org.orgaprop.controlprop.viewmodels.AddCommentViewModel
 import org.orgaprop.controlprop.viewmodels.ConfigCtrlViewModel
@@ -43,161 +44,161 @@ import org.orgaprop.controlprop.viewmodels.TypeCtrlViewModel
 
 val viewModelModule = module {
     viewModel {
-        Log.e("AppModule", "Creating MainViewModel...")
+        LogUtils.e("AppModule", "Creating MainViewModel...")
         MainViewModel()
     }
 
     viewModel {
-        Log.e("AppModule", "Creating LoginViewModel...")
-        LoginViewModel(get(), get())
+        LogUtils.e("AppModule", "Creating LoginViewModel...")
+        LoginViewModel(get(), get(), get())
     }
 
     viewModel {
-        Log.e("AppModule", "Creating GetMailViewModel...")
+        LogUtils.e("AppModule", "Creating GetMailViewModel...")
         GetMailViewModel(get(), get())
     }
 
     viewModel {
-        Log.e("AppModule", "Creating SelectEntryViewModel...")
+        LogUtils.e("AppModule", "Creating SelectEntryViewModel...")
         SelectEntryViewModel(get())
     }
 
     viewModel {
-        Log.e("AppModule", "Creating SelectListViewModel...")
+        LogUtils.e("AppModule", "Creating SelectListViewModel...")
         SelectListViewModel(get())
     }
 
     viewModel {
-        Log.e("AppModule", "Creating TypeCtrlViewModel...")
+        LogUtils.e("AppModule", "Creating TypeCtrlViewModel...")
         TypeCtrlViewModel(get())
     }
 
     viewModel {
-        Log.e("AppModule", "Creating PlanActionsViewModel...")
+        LogUtils.e("AppModule", "Creating PlanActionsViewModel...")
         PlanActionsViewModel(get(), get())
     }
 
     viewModel {
-        Log.e("AppModule", "Creating ConfigCtrlViewModel...")
+        LogUtils.e("AppModule", "Creating ConfigCtrlViewModel...")
         ConfigCtrlViewModel()
     }
 
     viewModel {
-        Log.e("AppModule", "Creating GrilleCtrlViewModel...")
+        LogUtils.e("AppModule", "Creating GrilleCtrlViewModel...")
         GrilleCtrlViewModel(get())
     }
 
     viewModel {
-        Log.e("AppModule", "Creating SendMailViewModel...")
+        LogUtils.e("AppModule", "Creating SendMailViewModel...")
         SendMailViewModel(get(), get())
     }
 
     viewModel {
-        Log.e("AppModule", "Creating CtrlZoneViewModel...")
+        LogUtils.e("AppModule", "Creating CtrlZoneViewModel...")
         CtrlZoneViewModel(get())
     }
 
     viewModel {
-        Log.e("AppModule", "Creating AddCommentViewModel...")
+        LogUtils.e("AppModule", "Creating AddCommentViewModel...")
         AddCommentViewModel()
     }
 
     viewModel {
-        Log.e("AppModule", "Creating FinishCtrlViewModel...")
+        LogUtils.e("AppModule", "Creating FinishCtrlViewModel...")
         FinishCtrlViewModel(get())
     }
 
     viewModel {
-        Log.e("AppModule", "Creating SignatureViewModel...")
+        LogUtils.e("AppModule", "Creating SignatureViewModel...")
         SignatureViewModel(get())
     }
 }
 
 val managerModule = module {
     single {
-        Log.e("AppModule", "Creating HttpTask...")
+        LogUtils.e("AppModule", "Creating HttpTask...")
         HttpTask(get())
     }
 
     single {
-        Log.e("AppModule", "Creating LoginManager...")
+        LogUtils.e("AppModule", "Creating LoginManager...")
         LoginManager(get(), get())
     }
 
     single {
-        Log.e("AppModule", "Creating LoginRepository...")
+        LogUtils.e("AppModule", "Creating LoginRepository...")
         LoginRepository(get())
     }
 
     single {
-        Log.e("AppModule", "Creating LoginResponseMapper...")
+        LogUtils.e("AppModule", "Creating LoginResponseMapper...")
         LoginResponseMapper()
     }
 
     single {
-        Log.e("AppModule", "Creating SecureCredentialsManager...")
+        LogUtils.e("AppModule", "Creating SecureCredentialsManager...")
         SecureCredentialsManager(get())
     }
 
     single {
-        Log.e("AppModule", "Starting network monitoring...")
+        LogUtils.e("AppModule", "Starting network monitoring...")
         val context = get<Context>()
         NetworkMonitor.startMonitoring(context)
         NetworkMonitor
     }
 
     single {
-        Log.e("AppModule", "Creating GetMailManager...")
+        LogUtils.e("AppModule", "Creating GetMailManager...")
         GetMailManager(get(), get())
     }
 
     single {
-        Log.e("AppModule", "Creating SelectEntryManager...")
+        LogUtils.e("AppModule", "Creating SelectEntryManager...")
         SelectEntryManager(get(), get())
     }
 
     single {
-        Log.e("AppModule", "Creating SelectListManager...")
+        LogUtils.e("AppModule", "Creating SelectListManager...")
         SelectListManager(get(), get())
     }
 
     single {
-        Log.e("AppModule", "Creating TypeCtrlManager...")
+        LogUtils.e("AppModule", "Creating TypeCtrlManager...")
         TypeCtrlManager(get(), get())
     }
 
     single {
-        Log.e("AppModule", "Creating PlanActionsManager...")
+        LogUtils.e("AppModule", "Creating PlanActionsManager...")
         PlanActionsManager(get(), get())
     }
 
     single {
-        Log.e("AppModule", "Creating GrilleCtrlManager...")
+        LogUtils.e("AppModule", "Creating GrilleCtrlManager...")
         GrilleCtrlManager(get(), get(), get())
     }
 
     single {
-        Log.e("AppModule", "Creating CtrlZoneManager...")
+        LogUtils.e("AppModule", "Creating CtrlZoneManager...")
         CtrlZoneManager(get())
     }
 
     single {
-        Log.e("AppModule", "Creating SendMailManager...")
+        LogUtils.e("AppModule", "Creating SendMailManager...")
         SendMailManager(get(), get())
     }
 
     single {
-        Log.e("AppModule", "Creating SyncManager...")
+        LogUtils.e("AppModule", "Creating SyncManager...")
         SyncManager(get(), get(), get())
     }
 
     single {
-        Log.e("AppModule", "Creating FinishCtrlManager...")
+        LogUtils.e("AppModule", "Creating FinishCtrlManager...")
         FinishCtrlManager(get(), get())
     }
 
     single {
-        Log.e("AppModule", "Creating SignatureManager...")
+        LogUtils.e("AppModule", "Creating SignatureManager...")
         SignatureManager(get(), get())
     }
 }

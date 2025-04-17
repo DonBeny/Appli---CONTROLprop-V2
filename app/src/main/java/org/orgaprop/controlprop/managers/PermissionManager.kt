@@ -25,15 +25,13 @@ class PermissionManager(private val activity: AppCompatActivity) {
 
     // Permissions requises pour l'application
     private val REQUIRED_PERMISSIONS = arrayOf(
-        Manifest.permission.INTERNET,
-        Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.READ_CALENDAR,
-        Manifest.permission.WRITE_CALENDAR
+        Manifest.permission.WRITE_CALENDAR,
+        Manifest.permission.CAMERA
     )
 
     // Permissions spécifiques à l'activité principale
     private val MAIN_ACTIVITY_PERMISSIONS = arrayOf(
-        Manifest.permission.INTERNET,
         Manifest.permission.READ_CALENDAR,
         Manifest.permission.WRITE_CALENDAR
     )
@@ -80,20 +78,6 @@ class PermissionManager(private val activity: AppCompatActivity) {
                 true
             } else {
                 requestPermissions(permissionsToRequest, callback)
-                /*requestPermissions(permissionsToRequest, object : PermissionResultCallback {
-                    override fun onResult(granted: Boolean) {
-                        callback.onResult(granted)
-                    }
-
-                    override fun onError(e: Exception) {
-                        val baseException = if (e is BaseException) e else BaseException(
-                            ErrorCodes.PERMISSION_ERROR,
-                            "Erreur lors de la demande de permissions",
-                            e
-                        )
-                        callback.onError(baseException)
-                    }
-                })*/
                 false
             }
         } catch (e: Exception) {
@@ -175,9 +159,9 @@ class PermissionManager(private val activity: AppCompatActivity) {
      */
     private fun getPermissionsToRequest(permissions: Array<String>): List<String> {
         return permissions.filter {
-            val isGranted = !isPermissionGranted(it)
+            val isGranted = isPermissionGranted(it)  // Correction ici
             Log.d(TAG, "Permission $it is ${if (isGranted) "granted" else "denied"}")
-            !isGranted
+            !isGranted  // Filtre correctement les permissions non accordées
         }
     }
 

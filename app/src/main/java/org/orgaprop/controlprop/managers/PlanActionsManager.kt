@@ -2,12 +2,15 @@ package org.orgaprop.controlprop.managers
 
 import android.content.Context
 import android.util.Log
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.json.JSONException
 import org.json.JSONObject
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.models.ObjPlanActions
 import org.orgaprop.controlprop.utils.HttpTask
+import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.network.HttpTaskConstantes
 import java.io.IOException
 
@@ -32,32 +35,34 @@ class PlanActionsManager(
      * @throws PlanActionsException en cas d'erreur
      */
     suspend fun fetchPlanActions(idRsd: Int, idMbr: Int, adrMac: String): JSONObject {
-        try {
-            val paramGet = "mod=${HttpTaskConstantes.HTTP_TASK_ACT_PROP_MOD_GET}"
-            val paramsPost = JSONObject().apply {
-                put("mbr", idMbr)
-                put("mac", adrMac)
-                put("rsd", idRsd)
-            }.toString()
+        return withContext(Dispatchers.IO) {
+            try {
+                val paramGet = "mod=${HttpTaskConstantes.HTTP_TASK_ACT_PROP_MOD_GET}"
+                val paramsPost = JSONObject().apply {
+                    put("mbr", idMbr)
+                    put("mac", adrMac)
+                    put("rsd", idRsd)
+                }.toString()
 
-            val response = httpTask.executeHttpTask(
-                HttpTaskConstantes.HTTP_TASK_ACT_PROP,
-                HttpTaskConstantes.HTTP_TASK_ACT_PROP_CBL_PLAN_ACTIONS,
-                paramGet,
-                paramsPost
-            )
+                val response = httpTask.executeHttpTask(
+                    HttpTaskConstantes.HTTP_TASK_ACT_PROP,
+                    HttpTaskConstantes.HTTP_TASK_ACT_PROP_CBL_PLAN_ACTIONS,
+                    paramGet,
+                    paramsPost
+                )
 
-            Log.d(TAG,"Response for fetchPlanAction: $response")
-            return JSONObject(response)
-        } catch (e: IOException) {
-            Log.e(TAG, "Erreur réseau lors de la récupération du plan d'actions", e)
-            throw PlanActionsException(ErrorCodes.NETWORK_ERROR, e)
-        } catch (e: JSONException) {
-            Log.e(TAG, "Réponse invalide lors de la récupération du plan d'actions", e)
-            throw PlanActionsException(ErrorCodes.INVALID_RESPONSE, e)
-        } catch (e: Exception) {
-            Log.e(TAG, "Erreur inconnue lors de la récupération du plan d'actions", e)
-            throw PlanActionsException(ErrorCodes.UNKNOWN_ERROR, e)
+                LogUtils.json(TAG,"Response for fetchPlanAction:", response)
+                JSONObject(response)
+            } catch (e: IOException) {
+                LogUtils.e(TAG, "Erreur réseau lors de la récupération du plan d'actions", e)
+                throw PlanActionsException(ErrorCodes.NETWORK_ERROR, e)
+            } catch (e: JSONException) {
+                LogUtils.e(TAG, "Réponse invalide lors de la récupération du plan d'actions", e)
+                throw PlanActionsException(ErrorCodes.INVALID_RESPONSE, e)
+            } catch (e: Exception) {
+                LogUtils.e(TAG, "Erreur inconnue lors de la récupération du plan d'actions", e)
+                throw PlanActionsException(ErrorCodes.UNKNOWN_ERROR, e)
+            }
         }
     }
 
@@ -72,34 +77,36 @@ class PlanActionsManager(
      * @throws PlanActionsException en cas d'erreur
      */
     suspend fun savePlanAction(planAction: ObjPlanActions, idRsd: Int, idMbr: Int, adrMac: String): JSONObject {
-        try {
-            val paramGet = "mod=${HttpTaskConstantes.HTTP_TASK_ACT_PROP_MOD_SET}"
-            val paramsPost = JSONObject().apply {
-                put("mbr", idMbr)
-                put("mac", adrMac)
-                put("rsd", idRsd)
-                put("limitPlan", planAction.limit)
-                put("txtPlan", planAction.txt)
-            }.toString()
+        return withContext(Dispatchers.IO) {
+            try {
+                val paramGet = "mod=${HttpTaskConstantes.HTTP_TASK_ACT_PROP_MOD_SET}"
+                val paramsPost = JSONObject().apply {
+                    put("mbr", idMbr)
+                    put("mac", adrMac)
+                    put("rsd", idRsd)
+                    put("limitPlan", planAction.limit)
+                    put("txtPlan", planAction.txt)
+                }.toString()
 
-            val response = httpTask.executeHttpTask(
-                HttpTaskConstantes.HTTP_TASK_ACT_PROP,
-                HttpTaskConstantes.HTTP_TASK_ACT_PROP_CBL_PLAN_ACTIONS,
-                paramGet,
-                paramsPost
-            )
+                val response = httpTask.executeHttpTask(
+                    HttpTaskConstantes.HTTP_TASK_ACT_PROP,
+                    HttpTaskConstantes.HTTP_TASK_ACT_PROP_CBL_PLAN_ACTIONS,
+                    paramGet,
+                    paramsPost
+                )
 
-            Log.d(TAG, "Response for savePlanAction: $response")
-            return JSONObject(response)
-        } catch (e: IOException) {
-            Log.e(TAG, "Erreur réseau lors de la sauvegarde du plan d'actions", e)
-            throw PlanActionsException(ErrorCodes.NETWORK_ERROR, e)
-        } catch (e: JSONException) {
-            Log.e(TAG, "Réponse invalide lors de la sauvegarde du plan d'actions", e)
-            throw PlanActionsException(ErrorCodes.INVALID_RESPONSE, e)
-        } catch (e: Exception) {
-            Log.e(TAG, "Erreur inconnue lors de la sauvegarde du plan d'actions", e)
-            throw PlanActionsException(ErrorCodes.UNKNOWN_ERROR, e)
+                LogUtils.json(TAG, "Response for savePlanAction:", response)
+                JSONObject(response)
+            } catch (e: IOException) {
+                LogUtils.e(TAG, "Erreur réseau lors de la sauvegarde du plan d'actions", e)
+                throw PlanActionsException(ErrorCodes.NETWORK_ERROR, e)
+            } catch (e: JSONException) {
+                LogUtils.e(TAG, "Réponse invalide lors de la sauvegarde du plan d'actions", e)
+                throw PlanActionsException(ErrorCodes.INVALID_RESPONSE, e)
+            } catch (e: Exception) {
+                LogUtils.e(TAG, "Erreur inconnue lors de la sauvegarde du plan d'actions", e)
+                throw PlanActionsException(ErrorCodes.UNKNOWN_ERROR, e)
+            }
         }
     }
 
@@ -113,32 +120,34 @@ class PlanActionsManager(
      * @throws PlanActionsException en cas d'erreur
      */
     suspend fun validatePlanAction(idPlan: Int, idMbr: Int, adrMac: String): JSONObject {
-        try {
-            val paramGet = "mod=${HttpTaskConstantes.HTTP_TASK_ACT_PROP_MOD_SET}"
-            val paramsPost = JSONObject().apply {
-                put("mbr", idMbr)
-                put("mac", adrMac)
-                put("plan", idPlan)
-            }.toString()
+        return withContext(Dispatchers.IO) {
+            try {
+                val paramGet = "mod=${HttpTaskConstantes.HTTP_TASK_ACT_PROP_MOD_SET}"
+                val paramsPost = JSONObject().apply {
+                    put("mbr", idMbr)
+                    put("mac", adrMac)
+                    put("plan", idPlan)
+                }.toString()
 
-            val response = httpTask.executeHttpTask(
-                HttpTaskConstantes.HTTP_TASK_ACT_PROP,
-                HttpTaskConstantes.HTTP_TASK_ACT_PROP_CBL_PLAN_ACTIONS,
-                paramGet,
-                paramsPost
-            )
+                val response = httpTask.executeHttpTask(
+                    HttpTaskConstantes.HTTP_TASK_ACT_PROP,
+                    HttpTaskConstantes.HTTP_TASK_ACT_PROP_CBL_PLAN_ACTIONS,
+                    paramGet,
+                    paramsPost
+                )
 
-            Log.d(TAG, "Response for validatePlanAction: $response")
-            return JSONObject(response)
-        } catch (e: IOException) {
-            Log.e(TAG, "Erreur réseau lors de la validation du plan d'actions", e)
-            throw PlanActionsException(ErrorCodes.NETWORK_ERROR, e)
-        } catch (e: JSONException) {
-            Log.e(TAG, "Réponse invalide lors de la validation du plan d'actions", e)
-            throw PlanActionsException(ErrorCodes.INVALID_RESPONSE, e)
-        } catch (e: Exception) {
-            Log.e(TAG, "Erreur inconnue lors de la validation du plan d'actions", e)
-            throw PlanActionsException(ErrorCodes.UNKNOWN_ERROR, e)
+                LogUtils.json(TAG, "Response for validatePlanAction:", response)
+                JSONObject(response)
+            } catch (e: IOException) {
+                LogUtils.e(TAG, "Erreur réseau lors de la validation du plan d'actions", e)
+                throw PlanActionsException(ErrorCodes.NETWORK_ERROR, e)
+            } catch (e: JSONException) {
+                LogUtils.e(TAG, "Réponse invalide lors de la validation du plan d'actions", e)
+                throw PlanActionsException(ErrorCodes.INVALID_RESPONSE, e)
+            } catch (e: Exception) {
+                LogUtils.e(TAG, "Erreur inconnue lors de la validation du plan d'actions", e)
+                throw PlanActionsException(ErrorCodes.UNKNOWN_ERROR, e)
+            }
         }
     }
 
@@ -168,6 +177,7 @@ class PlanActionsManager(
                 }
             }
         }
+
     }
 
 }

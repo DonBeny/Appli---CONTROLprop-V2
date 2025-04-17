@@ -9,10 +9,13 @@ import org.orgaprop.controlprop.managers.FinishCtrlManager
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.ui.config.TypeCtrlActivity
+import org.orgaprop.controlprop.utils.LogUtils
 
 class FinishCtrlViewModel(private val manager: FinishCtrlManager) : ViewModel() {
 
-    private val TAG = "FinishCtrlViewModel"
+    companion object {
+        private const val TAG = "FinishCtrlViewModel"
+    }
 
     private val _controlState = MutableLiveData<ControlState>()
     val controlState: LiveData<ControlState> = _controlState
@@ -33,7 +36,7 @@ class FinishCtrlViewModel(private val manager: FinishCtrlManager) : ViewModel() 
      */
     fun setUserData(userData: LoginData) {
         this.userData = userData
-        Log.d(TAG, "setUserData: ID=${userData.idMbr}")
+        LogUtils.json(TAG, "setUserData:", userData)
     }
 
     /**
@@ -43,7 +46,7 @@ class FinishCtrlViewModel(private val manager: FinishCtrlManager) : ViewModel() 
      */
     fun setEntrySelected(currentEntry: SelectItem) {
         entrySelected = currentEntry
-        Log.d(TAG, "setEntrySelected: ID=${currentEntry.id}, Name=${currentEntry.name}")
+        LogUtils.json(TAG, "setEntrySelected:", currentEntry)
         refreshControlState()
     }
 
@@ -62,12 +65,12 @@ class FinishCtrlViewModel(private val manager: FinishCtrlManager) : ViewModel() 
                     isRandomControl = isRandomControl
                 )
 
-                Log.d(TAG, "refreshControlState: isSigned=$isSigned, hasPlanActions=$hasPlanActions, isRandomControl=$isRandomControl")
+                LogUtils.d(TAG, "refreshControlState: isSigned=$isSigned, hasPlanActions=$hasPlanActions, isRandomControl=$isRandomControl")
             } catch (e: Exception) {
-                Log.e(TAG, "refreshControlState: Erreur lors du rafraîchissement de l'état", e)
+                LogUtils.e(TAG, "refreshControlState: Erreur lors du rafraîchissement de l'état", e)
             }
         } else {
-            Log.e(TAG, "refreshControlState: Aucune entrée sélectionnée")
+            LogUtils.e(TAG, "refreshControlState: Aucune entrée sélectionnée")
         }
     }
 
