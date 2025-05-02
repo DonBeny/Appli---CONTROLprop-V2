@@ -17,7 +17,9 @@ class LoginManager(
     private val httpTask: HttpTask
 ) {
 
-    private val TAG = "LoginManager"
+    companion object {
+        private val TAG = "LoginManager"
+    }
 
     /**
      * Effectue la connexion de l'utilisateur
@@ -164,5 +166,7 @@ class LoginManager(
                 }
             }
         }
+
     }
+
 }

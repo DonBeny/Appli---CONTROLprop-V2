@@ -25,7 +25,7 @@
         android:inputType="textEmailAddress"
         android:autofillHints=""
         android:hint="@string/hint_get_mail"
-        android:textSize="40sp"/>
+        android:textSize="30sp"/>
 
     <Button android:id="@+id/get_mail_activity_mail_btn"
         android:layout_width="match_parent"
@@ -41,7 +41,7 @@
 
         android:background="@drawable/button_selected_green"
         android:textColor="@color/_white"
-        android:textSize="40sp"
+        android:textSize="30sp"
         android:text="@string/btn_valid"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

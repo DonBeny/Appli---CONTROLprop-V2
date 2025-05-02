@@ -18,7 +18,7 @@
         <!-- Couleur de fond du Splash Screen -->
         <item name="windowSplashScreenBackground">@color/colorPrimary</item>
         <!-- Icône du Splash Screen -->
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_app_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
         <!-- Durée de l'animation de l'icône -->
         <item name="windowSplashScreenAnimationDuration">200</item>
         <!-- Couleur de l'arrière-plan après la disparition du Splash Screen -->
@@ -30,7 +30,7 @@
         <!-- Couleur de fond du Splash Screen -->
         <item name="windowSplashScreenBackground">@color/background_primary_dark</item>
         <!-- Icône du Splash Screen -->
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_app_foreground</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
         <!-- Durée de l'animation de l'icône -->
         <item name="windowSplashScreenAnimationDuration">200</item>
         <!-- Couleur de l'arrière-plan après la disparition du Splash Screen -->

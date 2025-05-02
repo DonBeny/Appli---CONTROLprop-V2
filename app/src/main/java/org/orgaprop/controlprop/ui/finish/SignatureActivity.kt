@@ -5,9 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.inputmethod.EditorInfo
-import android.view.inputmethod.InputMethodManager
 import android.window.OnBackInvokedDispatcher
-import androidx.appcompat.app.AlertDialog
 
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -32,6 +30,7 @@ import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.utils.UiUtils.showUiAlert
 import org.orgaprop.controlprop.viewmodels.SignatureViewModel
+import kotlin.math.abs
 
 class SignatureActivity : BaseActivity() {
 
@@ -228,6 +227,12 @@ class SignatureActivity : BaseActivity() {
         }
     }
     private fun onSignaturesSaved() {
+        val updatedEntry = entrySelected.copy(
+            signed = true
+        )
+
+        setEntrySelected(updatedEntry)
+
         setResult(RESULT_OK)
         finish()
     }
@@ -240,14 +245,13 @@ class SignatureActivity : BaseActivity() {
 
             if (prestate > 0) {
                 val listAgents = getListAgents()
-                val idPrestate = if (prestate > 0) prestate else entrySelected.referents?.ent?.id ?: 0
 
-                LogUtils.d(TAG, "setupPrestate: idPrestate = $idPrestate")
+                LogUtils.d(TAG, "setupPrestate: idPrestate = $prestate")
 
                 listAgents?.let {
                     LogUtils.json(TAG, "setupPrestate: listAgents", listAgents)
 
-                    val agentObj = it.optJSONObject(idPrestate.toString())
+                    val agentObj = it.optJSONObject(prestate.toString())
                     val agentName = agentObj?.optString("name", "")
 
                     LogUtils.json(TAG, "setupPrestate: agentName from agents:", agentObj)
@@ -261,8 +265,8 @@ class SignatureActivity : BaseActivity() {
                 listPrestates?.let {
                     LogUtils.json(TAG, "setupPrestate: listPrestates", listPrestates)
 
-                    val prestateObj = it.optJSONObject(Math.abs(prestate).toString())
-                    val prestateName = prestateObj?.optString("txt", "") ?: ""
+                    val prestateObj = it.optJSONObject(abs(prestate).toString())
+                    val prestateName = prestateObj?.optString("name", "") ?: ""
 
                     LogUtils.d(TAG, "setupPrestate: prestateName from prestates = $prestateName")
 
@@ -280,7 +284,7 @@ class SignatureActivity : BaseActivity() {
                         val listAgents = getListAgents()
                         listAgents?.let {
                             val agentObj = it.optJSONObject(entId.toString())
-                            val agentName = agentObj?.optString("txt", "") ?: ""
+                            val agentName = agentObj?.optString("name", "") ?: ""
                             Log.d(TAG, "setupPrestate: agentName from referents = $agentName")
                             binding.signatureActivityAgtNameInput.setText(agentName)
                         }
@@ -288,7 +292,7 @@ class SignatureActivity : BaseActivity() {
                         val listPrestates = getListPrestates()
                         listPrestates?.let {
                             val prestateObj = it.optJSONObject(entId.toString())
-                            val prestateName = prestateObj?.optString("txt", "") ?: ""
+                            val prestateName = prestateObj?.optString("name", "") ?: ""
                             Log.d(TAG, "setupPrestate: prestateName from referents = $prestateName")
                             binding.signatureActivityAgtNameInput.setText(prestateName)
                         }

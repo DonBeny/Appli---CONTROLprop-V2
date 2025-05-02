@@ -111,6 +111,7 @@ class GrilleCtrlActivity : BaseActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        UiUtils.dismissCurrentDialog()
         progressDialog?.dismiss()
         progressDialog = null
     }
@@ -175,7 +176,6 @@ class GrilleCtrlActivity : BaseActivity() {
                 LogUtils.json(TAG, "setupComponents: Entry selected ID:", entrySelected)
 
                 viewModel.setEntrySelected(entrySelected)
-                viewModel.refreshAllNotes()
 
                 listAgents = listAgentsSaved.toObjAgentList()
                 listPrestates = listPrestatesSaved.toObjAgentList()
@@ -189,8 +189,6 @@ class GrilleCtrlActivity : BaseActivity() {
 
                 setupObservers()
                 setupListeners()
-
-                viewModel.refreshAllNotes()
             } catch (e: BaseException) {
                 LogUtils.e(TAG, "setupComponents: Error loading saved grille data", e)
                 showErrorMessage(e.message ?: ErrorCodes.getMessageForCode(e.code))

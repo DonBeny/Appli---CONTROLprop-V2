@@ -199,6 +199,52 @@ abstract class BaseActivity : AppCompatActivity() {
 
 
     /**
+     * Affiche dans les logs toutes les préférences actuellement stockées.
+     * Cette méthode est utile uniquement pour le débogage.
+     */
+    fun logAllPreferences() {
+        try {
+            LogUtils.d(TAG, "---- Début du log des préférences standard ----")
+
+            val allPrefs = preferences.all
+            if (allPrefs.isEmpty()) {
+                LogUtils.d(TAG, "Aucune préférence standard trouvée")
+            } else {
+                for ((key, value) in allPrefs) {
+                    when (value) {
+                        is String -> {
+                            LogUtils.json(TAG, "Préférence: $key : String", value)
+                        }
+                        is Boolean -> LogUtils.json(TAG, "Préférence: $key : boolean => $value")
+                        is Int -> LogUtils.json(TAG, "Préférence: $key : Int => $value")
+                        is Long -> LogUtils.json(TAG, "Préférence: $key : Long => $value")
+                        is Float -> LogUtils.json(TAG, "Préférence: $key Float => $value")
+                        is Set<*> -> LogUtils.json(TAG, "Préférence: $key : Set", value)
+                        else -> LogUtils.json(TAG, "Préférence: $key : Type inconnu", value)
+                    }
+                }
+            }
+            LogUtils.d(TAG, "---- Fin du log des préférences standard ----")
+
+            LogUtils.d(TAG, "---- Début du log des préférences sécurisées (clés uniquement) ----")
+            val securePrefs = securePreferences.all
+            if (securePrefs.isEmpty()) {
+                LogUtils.d(TAG, "Aucune préférence sécurisée trouvée")
+            } else {
+                for (key in securePrefs.keys) {
+                    LogUtils.d(TAG, "Préférence sécurisée: $key = [Valeur masquée]")
+                }
+            }
+            LogUtils.d(TAG, "---- Fin du log des préférences sécurisées ----")
+
+        } catch (e: Exception) {
+            LogUtils.e(TAG, "Erreur lors de l'affichage des préférences", e)
+        }
+    }
+
+
+
+    /**
      * Efface toutes les données stockées dans les préférences.
      */
     fun clearAllData() {

@@ -14,8 +14,6 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 
 import org.orgaprop.controlprop.R
-import org.orgaprop.controlprop.exceptions.BaseException
-import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.managers.PermissionManager
 import org.orgaprop.controlprop.managers.UpdateManager

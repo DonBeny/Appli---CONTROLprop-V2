@@ -50,6 +50,7 @@ class LoginActivity : BaseActivity() {
         setupObservers()
         setupListeners()
         checkUserLoggedIn()
+        logAllPreferences()
     }
     override fun setupObservers() {
         viewModel.loginState.observe(this, Observer { state ->
@@ -127,9 +128,8 @@ class LoginActivity : BaseActivity() {
 
 
     private fun clearLoginData() {
-        clearUserData()
-
-        //clearAllData()
+        //clearUserData()
+        clearAllData()
 
         binding.mainActivityUsernameTxt.text.clear()
         binding.mainActivityPasswordTxt.text.clear()

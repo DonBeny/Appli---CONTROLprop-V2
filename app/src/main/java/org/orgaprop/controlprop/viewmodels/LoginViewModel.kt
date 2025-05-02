@@ -84,16 +84,13 @@ class LoginViewModel(
         viewModelScope.launch(Dispatchers.IO) {
             _loginState.postValue(LoginState.Loading)
             try {
-                // Validation des entrées
                 validateInputs(username, password)
 
-                // Vérifier la connexion réseau
                 if (!networkMonitor.isConnected()) {
                     _loginState.postValue(LoginState.Error("Aucune connexion réseau disponible"))
                     return@launch
                 }
 
-                // Connexion via LoginRepository
                 val responseJson = loginRepository.login(username, password)
                 val response = responseMapper.parseLoginResponse(responseJson)
 
@@ -259,4 +256,5 @@ class LoginViewModel(
      * Exception personnalisée pour les erreurs de validation
      */
     class ValidationException(message: String) : BaseException(ErrorCodes.INVALID_INPUT, message)
+
 }

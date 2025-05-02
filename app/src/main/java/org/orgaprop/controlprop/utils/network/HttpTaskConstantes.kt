@@ -16,7 +16,7 @@ object HttpTaskConstantes {
 
     const val HTTP_TASK_ACT_PROP = "prop"
     const val HTTP_TASK_ACT_PROP_CBL_PLAN_ACTIONS = "plan"
-    const val HTTP_TASK_ACT_PROP_CBL_SAVE = "save"
+    const val HTTP_TASK_ACT_PROP_CBL_SAVE = "save2"
     const val HTTP_TASK_ACT_PROP_MOD_SET = "set"
     const val HTTP_TASK_ACT_PROP_MOD_GET = "get"
 

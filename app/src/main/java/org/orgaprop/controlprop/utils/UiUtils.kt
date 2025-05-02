@@ -15,10 +15,15 @@ import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.core.content.res.ResourcesCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
 import com.google.android.material.snackbar.Snackbar
 import org.orgaprop.controlprop.R
 
 object UiUtils {
+
+    private const val TAG = "UiUtils"
 
     private var currentDialog: AlertDialog? = null
 
@@ -176,27 +181,82 @@ object UiUtils {
         negativeAction: (() -> Unit)? = null
     ) {
         runOnMainThread {
+            // Fermer la boîte de dialogue actuelle pour éviter les empilements
             currentDialog?.dismiss()
-            currentDialog = AlertDialog.Builder(context, R.style.CustomAlertDialogTheme)
-                .apply { title?.let { setTitle(it) } }
-                .setMessage(message)
-                .setPositiveButton(positiveButtonText) { _, _ -> positiveAction() }
-                .setNegativeButton(negativeButtonText) { _, _ -> negativeAction?.invoke() }
-                .setCancelable(false)
-                .create()
-                .also { dialog ->
-                    dialog.show()
 
-                    dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
-                        setTextColor(context.getColor(R.color.main_ctrl_prop))
-                        isAllCaps = false
-                    }
+            // Vérifier si le contexte est toujours valide (activité non détruite)
+            if (context is LifecycleOwner) {
+                val lifecycleOwner = context as LifecycleOwner
 
-                    dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.apply {
-                        setTextColor(context.getColor(R.color.text_secondary_light))
-                        isAllCaps = false
-                    }
+                // Ne créer la boîte de dialogue que si l'activité est au moins STARTED
+                if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                    // Créer et afficher la boîte de dialogue
+                    currentDialog = AlertDialog.Builder(context, R.style.CustomAlertDialogTheme)
+                        .apply { title?.let { setTitle(it) } }
+                        .setMessage(message)
+                        .setPositiveButton(positiveButtonText) { dialog, _ ->
+                            dialog.dismiss()
+                            positiveAction()
+                        }
+                        .setNegativeButton(negativeButtonText) { dialog, _ ->
+                            dialog.dismiss()
+                            negativeAction?.invoke()
+                        }
+                        .setCancelable(false)
+                        .create()
+                        .also { dialog ->
+                            dialog.show()
+
+                            // Observer le cycle de vie pour fermer la boîte de dialogue si l'activité est détruite
+                            lifecycleOwner.lifecycle.addObserver(object : DefaultLifecycleObserver {
+                                override fun onDestroy(owner: LifecycleOwner) {
+                                    dialog.dismiss()
+                                    lifecycleOwner.lifecycle.removeObserver(this)
+                                }
+                            })
+
+                            dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                                setTextColor(context.getColor(R.color.main_ctrl_prop))
+                                isAllCaps = false
+                            }
+
+                            dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.apply {
+                                setTextColor(context.getColor(R.color.text_secondary_light))
+                                isAllCaps = false
+                            }
+                        }
+                } else {
+                    LogUtils.d(TAG, "showConfirmationDialog: L'activité n'est plus dans un état valide pour afficher une boîte de dialogue")
                 }
+            } else {
+                // Cas où le contexte n'est pas un LifecycleOwner (plus rare)
+                currentDialog = AlertDialog.Builder(context, R.style.CustomAlertDialogTheme)
+                    .apply { title?.let { setTitle(it) } }
+                    .setMessage(message)
+                    .setPositiveButton(positiveButtonText) { dialog, _ ->
+                        dialog.dismiss()
+                        positiveAction()
+                    }
+                    .setNegativeButton(negativeButtonText) { dialog, _ ->
+                        dialog.dismiss()
+                        negativeAction?.invoke()
+                    }
+                    .setCancelable(false)
+                    .create()
+                    .also { dialog ->
+                        dialog.show()
+
+                        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.apply {
+                            setTextColor(context.getColor(R.color.main_ctrl_prop))
+                            isAllCaps = false
+                        }
+
+                        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.apply {
+                            setTextColor(context.getColor(R.color.text_secondary_light))
+                            isAllCaps = false
+                        }
+                    }
+            }
         }
     }
 

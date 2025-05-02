@@ -148,18 +148,33 @@ class TypeCtrlActivity : BaseActivity() {
         })
 
         viewModel.randomGenerationCompleted.observe(this, Observer { success ->
-            // Fermer le dialogue de progression
             UiUtils.dismissCurrentDialog()
 
             if (success) {
-                // Sauvegarder la liste générée
                 val randomList = viewModel.getRandomControlList()
-                setRandomList(randomList)
 
-                // Naviguer vers l'écran suivant
-                navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_RANDOM)
+                if (randomList.isNotEmpty()) {
+                    setRandomList(randomList)
+
+                    val selectedEntry = getEntrySelected()
+                    val modifiedSelectedEntry = randomList.find { it.id == selectedEntry?.id }
+
+                    if (modifiedSelectedEntry != null) {
+                        LogUtils.d(TAG, "Mise à jour de l'entrée sélectionnée avec la version modifiée")
+
+                        setEntrySelected(modifiedSelectedEntry)
+                    } else {
+                        LogUtils.d(TAG, "Entrée sélectionnée non trouvée dans la liste aléatoire")
+                    }
+
+                    navigateToNextScreen(TYPE_CTRL_ACTIVITY_TAG_RANDOM)
+                } else {
+                    UiUtils.showErrorSnackbar(
+                        binding.root,
+                        "Aucune zone disponible pour le contrôle aléatoire"
+                    )
+                }
             } else {
-                // Afficher une erreur
                 viewModel.error.value?.let { (_, message) ->
                     UiUtils.showErrorSnackbar(binding.root, message)
                 } ?: UiUtils.showErrorSnackbar(
@@ -208,6 +223,7 @@ class TypeCtrlActivity : BaseActivity() {
             flags = Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP
         }
         startActivity(intent)
+        finish()
     }
 
 }

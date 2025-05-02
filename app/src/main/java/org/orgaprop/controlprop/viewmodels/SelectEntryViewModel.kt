@@ -59,6 +59,12 @@ class SelectEntryViewModel(
     private val _errorMessage = MutableLiveData<String>()
     val errorMessage: LiveData<String> get() = _errorMessage
 
+    private val _selectedResidenceLine1 = MutableLiveData<String>()
+    val selectedResidenceLine1: LiveData<String> get() = _selectedResidenceLine1
+
+    private val _selectedResidenceLine2 = MutableLiveData<String>()
+    val selectedResidenceLine2: LiveData<String> get() = _selectedResidenceLine2
+
 
 
     fun onLogoutButtonClicked() {
@@ -92,21 +98,6 @@ class SelectEntryViewModel(
         _isContractChecked.value = isChecked
     }
 
-    fun onNextButtonClicked() {
-        val residence = _selectedResidence.value
-        val isProximityChecked = _isProximityChecked.value ?: false
-        val isContractChecked = _isContractChecked.value ?: false
-
-        if (residence.isNullOrEmpty()) {
-            _errorMessage.value = "Veuillez sélectionner une résidence"
-        } else if (!isProximityChecked && !isContractChecked) {
-            _errorMessage.value = "Veuillez cocher au moins une option (Proximité ou Contrat)"
-        } else {
-            //TODO : Enregistrer l'entrée sélectionnée et la dernière liste des entrées reçues
-            //_navigateToNextScreen.value = true
-        }
-    }
-
 
 
     fun handleSelectedItem(item: SelectItem) {
@@ -125,7 +116,7 @@ class SelectEntryViewModel(
                 _selectedResidenceId.value = null
             }
             SelectListActivity.SELECT_LIST_TYPE_GRP -> {
-                //Log.d(TAG, "handleSelectedItem: Selected Groupement: ${item.name}")
+                LogUtils.json(TAG, "handleSelectedItem: Selected Groupement:", item)
 
                 _selectedGroupement.value = item.name
                 _selectedGroupementId.value = item.id
@@ -134,21 +125,13 @@ class SelectEntryViewModel(
                 _selectedResidenceId.value = null
             }
             SelectListActivity.SELECT_LIST_TYPE_RSD -> {
-                //Log.d(TAG, "handleSelectedItem: Selected Residence: ${item.name}")
+                LogUtils.d(TAG, "handleSelectedItem: Selected Residence: ${item.ref}")
 
-                _selectedResidence.value = item.ref + " -- " + item.name + " -- Entrée " + item.entry
+                _selectedResidenceLine1.value = "<b>${item.ref}</b> -- ${item.name}"
+                _selectedResidenceLine2.value = "<b>Entrée</b> ${item.entry}"
+
+                _selectedResidence.value = "${item.ref} -- ${item.name} -- Entrée ${item.entry}"
                 _selectedResidenceId.value = item.id
-
-                // Accéder aux données prop
-                /*item.prop?.let { prop ->
-                    //Log.d(TAG, "Proxi zones: ${prop.zones.proxi}")
-                    //Log.d(TAG, "Contra zones: ${prop.zones.contra}")
-                    //Log.d(TAG, "Ctrl note: ${prop.ctrl.note}")
-
-                    // Convertir la chaîne JSON en JSONArray
-                    val grille = prop.ctrl.getGrilleAsJsonArray()
-                    //Log.d(TAG, "Grille: $grille")
-                }*/
             }
             SelectListActivity.SELECT_LIST_TYPE_SEARCH -> {
                 handleSearchItem(item)
@@ -178,11 +161,10 @@ class SelectEntryViewModel(
             _selectedGroupement.value = group.getString("txt")
             _selectedGroupementId.value = group.getInt("id")
 
-            val residence = "${item.ref} -- ${item.name} -- Entrée ${item.entry}"
+            _selectedResidenceLine1.value = "<b>${item.ref}</b> -- ${item.name}"
+            _selectedResidenceLine2.value = "<b>Entrée</b> ${item.entry}"
 
-            LogUtils.json(TAG, "handleSearchItem residence:", residence)
-
-            _selectedResidence.value = residence
+            _selectedResidence.value = "${item.ref} -- ${item.name} -- Entrée ${item.entry}"
             _selectedResidenceId.value = item.id
         } catch (e: Exception) {
             LogUtils.e(TAG, "Error parsing search result: ${e.message}")

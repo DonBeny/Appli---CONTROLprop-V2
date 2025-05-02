@@ -45,6 +45,7 @@ class FinishCtrlActivity : BaseActivity() {
 
     private lateinit var user: LoginData
     private lateinit var entrySelected: SelectItem
+    private var isAutoPlanChecked = false
 
 
 
@@ -59,6 +60,11 @@ class FinishCtrlActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         viewModel.refreshControlState()
+
+        if (!isAutoPlanChecked) {
+            isAutoPlanChecked = true
+            checkAutoPlanLaunch()
+        }
     }
 
 
@@ -102,6 +108,7 @@ class FinishCtrlActivity : BaseActivity() {
     override fun setupComponents() {
         setupObservers()
         setupListeners()
+        logAllPreferences()
     }
     override fun setupObservers() {
         viewModel.controlState.observe(this, Observer { state ->
@@ -167,6 +174,60 @@ class FinishCtrlActivity : BaseActivity() {
                 handleCloseCtrl()
             }
         )
+    }
+
+    /**
+     * Vérifie si un lancement automatique du plan d'actions est nécessaire
+     * en fonction de la note du contrôle et des paramètres utilisateur
+     */
+    private fun checkAutoPlanLaunch() {
+        LogUtils.d(TAG, "checkAutoPlanLaunch: Vérification des conditions pour lancer automatiquement le plan d'actions")
+
+        try {
+            val controlNote = entrySelected.prop?.ctrl?.note ?: -1
+
+            LogUtils.d(TAG, "checkAutoPlanLaunch: Note du contrôle: $controlNote")
+
+            val autoPlanMode = user.limits.autoPlan ?: 0
+            val lowerThreshold = user.limits.down ?: 0
+            val upperThreshold = user.limits.top ?: 0
+
+            LogUtils.d(TAG, "checkAutoPlanLaunch: Mode autoPlan: $autoPlanMode, Seuil bas: $lowerThreshold, Seuil haut: $upperThreshold")
+
+            when (autoPlanMode) {
+                0 -> {
+                    LogUtils.d(TAG, "checkAutoPlanLaunch: Mode autoPlan = 0, pas de lancement automatique")
+                }
+                1 -> {
+                    if (controlNote < lowerThreshold) {
+                        LogUtils.d(TAG, "checkAutoPlanLaunch: Mode autoPlan = 1, note ($controlNote) < seuil bas ($lowerThreshold), lancement du plan d'actions")
+                        UiUtils.showInfoSnackbar(binding.root, "Lancement automatique du plan d'actions (note basse)")
+                        navigateToPlanActionsActivity()
+                    } else {
+                        LogUtils.d(TAG, "checkAutoPlanLaunch: Mode autoPlan = 1, note ($controlNote) >= seuil bas ($lowerThreshold), pas de lancement")
+                    }
+                }
+                2 -> {
+                    if (controlNote < upperThreshold) {
+                        LogUtils.d(TAG, "checkAutoPlanLaunch: Mode autoPlan = 2, note ($controlNote) < seuil haut ($upperThreshold), lancement du plan d'actions")
+                        UiUtils.showInfoSnackbar(binding.root, "Lancement automatique du plan d'actions (note moyenne)")
+                        navigateToPlanActionsActivity()
+                    } else {
+                        LogUtils.d(TAG, "checkAutoPlanLaunch: Mode autoPlan = 2, note ($controlNote) >= seuil haut ($upperThreshold), pas de lancement")
+                    }
+                }
+                3 -> {
+                    LogUtils.d(TAG, "checkAutoPlanLaunch: Mode autoPlan = 3, lancement automatique du plan d'actions")
+                    UiUtils.showInfoSnackbar(binding.root, "Lancement automatique du plan d'actions")
+                    navigateToPlanActionsActivity()
+                }
+                else -> {
+                    LogUtils.e(TAG, "checkAutoPlanLaunch: Mode autoPlan inconnu: $autoPlanMode")
+                }
+            }
+        } catch (e: Exception) {
+            LogUtils.e(TAG, "checkAutoPlanLaunch: Erreur lors de la vérification du lancement automatique du plan d'actions", e)
+        }
     }
 
 

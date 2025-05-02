@@ -185,20 +185,18 @@ class RandomGeneratorManager {
             originalEntry: SelectItem,
             selectedZoneIds: List<String>
         ): SelectItem {
-            // Ici, nous créons une nouvelle instance de SelectItem avec uniquement les zones sélectionnées
-            // Note: La structure exacte dépend de votre implémentation de SelectItem
-
-            // Dans un cas réel, vous devriez filtrer les éléments de la grille de contrôle
-            // pour ne garder que ceux correspondant aux zones sélectionnées
+            val originalProxi = originalEntry.prop?.zones?.proxi ?: emptyList()
+            val originalContra = originalEntry.prop?.zones?.contra ?: emptyList()
+            val filteredProxi = originalProxi.filter { zoneId -> zoneId in selectedZoneIds }
+            val filteredContra = originalContra.filter { zoneId -> zoneId in selectedZoneIds }
 
             return originalEntry.copy(
-                // Vous devrez adapter cette partie en fonction de votre modèle de données
-                // prop = originalEntry.prop?.copy(
-                //     zones = Zones(
-                //         proxi = originalEntry.prop.zones.proxi.filter { it in selectedZoneIds },
-                //         contra = originalEntry.prop.zones.contra.filter { it in selectedZoneIds }
-                //     )
-                // )
+                prop = originalEntry.prop?.copy(
+                    zones = originalEntry.prop.zones.copy(
+                        proxi = filteredProxi,
+                        contra = filteredContra
+                    )
+                )
             )
         }
     }

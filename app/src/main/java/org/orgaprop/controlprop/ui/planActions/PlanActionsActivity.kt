@@ -14,6 +14,7 @@ import org.orgaprop.controlprop.databinding.ActivityPlanActionsBinding
 import org.orgaprop.controlprop.models.ObjPlanActions
 
 import org.orgaprop.controlprop.ui.BaseActivity
+import org.orgaprop.controlprop.ui.finish.FinishCtrlActivity
 import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
 import org.orgaprop.controlprop.utils.LogUtils
@@ -327,6 +328,15 @@ class PlanActionsActivity : BaseActivity() {
     private fun navigateToSelectEntryActivity() {
         LogUtils.d(TAG, "Navigating to SelectEntryActivity")
         Intent(this, SelectEntryActivity::class.java).also {
+            it.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivity(it)
+            finish()
+        }
+    }
+    private fun navigateToFinishCtrlActivity() {
+        LogUtils.d(TAG, "Navigating to FinishActivity")
+        Intent(this, FinishCtrlActivity::class.java).also {
+            it.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
             startActivity(it)
             finish()
         }
@@ -334,8 +344,33 @@ class PlanActionsActivity : BaseActivity() {
     private fun navigateToPrevScreen() {
         LogUtils.d(TAG, "Navigating to activity précédente")
 
-        setResult(RESULT_OK)
-        finish()
+        val entrySelect = getEntrySelected()
+        val userData = getUserData()
+
+        if (entrySelect != null && userData != null) {
+            val controlNote = entrySelect.prop?.ctrl?.note ?: -1
+            val autoPlanThreshold = userData.limits.autoPlan ?: -1
+
+            LogUtils.d(TAG, "navigateToPrevScreen: controlNote = $controlNote, autoPlanThreshold = $autoPlanThreshold")
+
+            // Vérifier si la note est inférieure au seuil
+            if (controlNote in 0..<autoPlanThreshold) {
+                UiUtils.showConfirmationDialog(
+                    context = this,
+                    title = "Attention",
+                    message = "La note du contrôle ($controlNote) est inférieure au seuil ($autoPlanThreshold). Voulez-vous vraiment quitter sans action ?",
+                    positiveButtonText = "Confirmer",
+                    negativeButtonText = "Rester",
+                    positiveAction = {
+                        navigateToFinishCtrlActivity()
+                    }
+                )
+            } else {
+                navigateToFinishCtrlActivity()
+            }
+        } else {
+            navigateToSelectEntryActivity()
+        }
     }
 
     /**

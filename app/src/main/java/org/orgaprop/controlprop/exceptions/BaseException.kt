@@ -1,6 +1,5 @@
 package org.orgaprop.controlprop.exceptions
 
-import android.util.Log
 import org.orgaprop.controlprop.utils.LogUtils
 
 /**

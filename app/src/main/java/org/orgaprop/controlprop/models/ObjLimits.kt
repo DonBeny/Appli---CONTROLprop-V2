@@ -9,7 +9,8 @@ import org.orgaprop.controlprop.exceptions.ErrorCodes
 data class ObjLimits(
     val top: Int,
     val down: Int,
-    val rapport: ObjRapport
+    val rapport: ObjRapport,
+    val autoPlan: Int,
 ) {
 
     companion object {
@@ -20,7 +21,8 @@ data class ObjLimits(
                 return ObjLimits(
                     top = json.optInt("top", 0),
                     down = json.optInt("down", 0),
-                    rapport = ObjRapport.fromJson(json.optJSONObject("rapport") ?: JSONObject())
+                    rapport = ObjRapport.fromJson(json.optJSONObject("rapport") ?: JSONObject()),
+                    autoPlan = json.optInt("auto", 0)
                 ).also { it.validate() }
             } catch (e: JSONException) {
                 Log.e(TAG, "Erreur lors du parsing des limites", e)
@@ -40,6 +42,7 @@ data class ObjLimits(
                 put("top", top)
                 put("down", down)
                 put("rapport", rapport.toJson())
+                put("auto", autoPlan)
             }
         } catch (e: JSONException) {
             Log.e(TAG, "Erreur lors de la sérialisation des limites", e)

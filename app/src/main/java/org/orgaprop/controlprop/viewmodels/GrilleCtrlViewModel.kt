@@ -97,7 +97,7 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
     fun setEntrySelected(entrySelected: SelectItem) {
         try {
             _residenceData.value = entrySelected
-            LogUtils.json(TAG, "setEntrySelected: Entry elected", entrySelected)
+            LogUtils.json(TAG, "setEntrySelected: Entry selected", entrySelected)
             generateBtnZones()
             refreshAllNotes()
         } catch (e: BaseException) {
@@ -117,7 +117,7 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
             val btnZonesList = mutableListOf<ObjBtnZone>()
 
             userData.structure.forEach { (zoneId, structureZone) ->
-                LogUtils.json(TAG, "Checking zone ${zoneId}:", structureZone)
+                LogUtils.json(TAG, "generateBtnZones: Checking zone ${zoneId}:", structureZone)
 
                 val isProxiZone = withProxi && _residenceData.value?.prop?.zones?.proxi?.contains(zoneId) == true
                 val isContractZone = withContract && _residenceData.value?.prop?.zones?.contra?.contains(zoneId) == true

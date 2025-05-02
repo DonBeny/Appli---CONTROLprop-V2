@@ -134,11 +134,7 @@ class LoginResponseMapper {
      * Parse les informations de limites
      */
     private fun parseLimits(limitsObject: JSONObject): ObjLimits {
-        return ObjLimits(
-            top = limitsObject.getInt("top"),
-            down = limitsObject.getInt("down"),
-            rapport = parseRapport(limitsObject.getJSONObject("rapport"))
-        )
+        return ObjLimits.fromJson(limitsObject)
     }
 
     /**

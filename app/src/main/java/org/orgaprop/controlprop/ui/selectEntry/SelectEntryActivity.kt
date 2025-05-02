@@ -1,11 +1,10 @@
 package org.orgaprop.controlprop.ui.selectEntry
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.Html
+import android.text.TextUtils
 import android.util.Log
-import android.view.inputmethod.InputMethodManager
-import android.widget.Toast
 import android.window.OnBackInvokedDispatcher
 
 import androidx.activity.result.contract.ActivityResultContracts
@@ -25,6 +24,8 @@ import org.orgaprop.controlprop.utils.LogUtils
 import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.utils.extentions.getParcelableCompat
 import org.orgaprop.controlprop.viewmodels.SelectEntryViewModel
+
+
 
 class SelectEntryActivity : BaseActivity() {
 
@@ -179,9 +180,15 @@ class SelectEntryActivity : BaseActivity() {
             binding.selectEntryGrpSpinner.text = groupement
         })
         viewModel.selectedResidence.observe(this, Observer { residence ->
-            binding.selectEntryRsdSpinner.text = residence
-
             binding.selectEntryNextBtn.isEnabled = !residence.isNullOrEmpty()
+        })
+        viewModel.selectedResidenceLine1.observe(this, Observer { line1 ->
+            binding.selectEntryRsdSpinnerLine1.text =
+                Html.fromHtml(line1, Html.FROM_HTML_MODE_LEGACY)
+        })
+        viewModel.selectedResidenceLine2.observe(this, Observer { line2 ->
+            binding.selectEntryRsdSpinnerLine2.text =
+                Html.fromHtml(line2, Html.FROM_HTML_MODE_LEGACY)
         })
 
         // Observers pour les cases à cocher
