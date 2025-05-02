@@ -67,13 +67,14 @@ class SyncManager(
             val pendingControls = getPendingControls()
             val userData = getUserData()
 
-            LogUtils.json(TAG, "syncPendingControls: pendingControls:", pendingControls)
-            LogUtils.json(TAG, "syncPendingControls: userData:", userData)
-
             if (pendingControls.isEmpty()) {
+                LogUtils.d(TAG, "syncPendingControls: No pending controls to sync")
+
                 return@withContext SyncResult.SUCCESS
             }
             if (userData == null) {
+                LogUtils.e(TAG, "syncPendingControls: User data is null")
+
                 return@withContext SyncResult.FAILURE
             }
 
@@ -101,28 +102,11 @@ class SyncManager(
                 if (status) {
                     val dataObj = jsonObject.getJSONObject("data")
                     val savedArray = dataObj.getJSONArray("saved")
-                    val savedItems = mutableListOf<SavedItem>()
 
                     for (i in 0 until savedArray.length()) {
                         val itemObj = savedArray.getJSONObject(i)
-                        val id = itemObj.getInt("id")
-                        val propObj = itemObj.optJSONObject("prop")
-                        var date: ReturnedDate? = null
 
-                        if (propObj != null) {
-                            val ctrlObj = propObj.optJSONObject("ctrl")
-                            if (ctrlObj != null) {
-                                val dateObj = ctrlObj.optJSONObject("date")
-                                if (dateObj != null) {
-                                    date = ReturnedDate(
-                                        dateObj.getLong("value"),
-                                        dateObj.getString("txt")
-                                    )
-                                }
-                            }
-                        }
-
-                        date?.let { SavedItem(id, it) }?.let { savedItems.add(it) }
+                        updatePendingControlFromServerResponse(itemObj)
                     }
 
                     val errorArray = dataObj.getJSONArray("error")
@@ -140,8 +124,7 @@ class SyncManager(
                         }
                     }
 
-                    updateSyncedControls(savedItems)
-                    cleanSyncedControls(savedItems)
+                    cleanSyncedControls()
 
                     return@withContext if (errorItems.isEmpty()) {
                         SyncResult.SUCCESS
@@ -163,6 +146,67 @@ class SyncManager(
         }
     }
 
+    /**
+     * Met à jour un contrôle en attente avec les données reçues du serveur.
+     * Cette méthode est appelée pour chaque élément reçu dans la réponse du serveur.
+     *
+     * @param serverItem L'élément JSON reçu du serveur
+     */
+    private fun updatePendingControlFromServerResponse(serverItem: JSONObject) {
+        try {
+            val id = serverItem.getInt("id")
+
+            val type = serverItem.optString("type", "")
+            val selectItem = SelectItem.fromResidenceJson(serverItem, type)
+
+            addOrUpdatePendingControl(selectItem)
+
+            val entrySelected = sharedPrefs.getString(BaseActivity.PREF_SAVED_ENTRY_SELECTED, null)
+            if (entrySelected != null) {
+                val entry = gson.fromJson(entrySelected, SelectItem::class.java)
+                if (entry.id == id) {
+                    LogUtils.d(TAG, "Mise à jour du contrôle sélectionné dans BaseActivity")
+                    sharedPrefs.edit()
+                        .putString(BaseActivity.PREF_SAVED_ENTRY_SELECTED, gson.toJson(selectItem))
+                        .apply()
+                }
+            }
+        } catch (e: Exception) {
+            LogUtils.e(TAG, "Erreur lors de la mise à jour du contrôle depuis la réponse du serveur", e)
+        }
+    }
+    private fun cleanSyncedControls() {
+        val currentControls = getPendingControls()
+
+        LogUtils.json(TAG, "cleanSyncedControls: currentControls:", currentControls)
+
+        val updatedControls = currentControls.filter { control ->
+            LogUtils.json(TAG, "cleanSyncedControls: control:", control)
+
+            val isNotSigned = !control.signed
+            val isToday = control.prop?.ctrl?.date?.isToday() ?: false
+            val isNotSaved = !control.saved
+
+            val keepControl = isNotSigned && isToday && isNotSaved
+
+            if (keepControl) {
+                LogUtils.d(TAG, "Le contrôle ID: ${control.id} est conservé (non signé ET du jour)")
+            } else {
+                LogUtils.d(TAG, "Le contrôle ID: ${control.id} est supprimé (signé=${control.signed}, isToday=$isToday, isNotSaved=$isNotSaved)")
+            }
+
+            keepControl
+        }
+
+        LogUtils.json(TAG, "cleanSyncedControls: updatedControls:", updatedControls)
+
+        sharedPrefs.edit()
+            .putString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, gson.toJson(updatedControls))
+            .apply()
+    }
+
+
+
     private fun getUserData(): Pair<String, String>? {
         return try {
             val userData = sharedPrefs.getString(PREF_SAVED_USER, null)
@@ -183,131 +227,7 @@ class SyncManager(
         }
     }
 
-    private fun updateSavedControls(savedItems: List<SelectItem>) {
-        LogUtils.json(TAG, "updateSavedControls: savedItems:", savedItems)
 
-        val currentControls = getPendingControls().toMutableList()
-        LogUtils.json(TAG, "updateSavedControls: currentControls before update:", currentControls)
-
-        val updatedControls = currentControls.toMutableList()
-
-        savedItems.forEach { savedItem ->
-            val existingIndex = updatedControls.indexOfFirst { it.id == savedItem.id }
-
-            if (existingIndex >= 0) {
-                updatedControls[existingIndex] = savedItem
-                LogUtils.d(TAG, "updateSavedControls: Updated control with ID ${savedItem.id}")
-            } else {
-                updatedControls.add(savedItem)
-                LogUtils.d(TAG, "updateSavedControls: Added new control with ID ${savedItem.id}")
-            }
-        }
-
-        LogUtils.json(TAG, "updateSavedControls: updatedControls after update:", updatedControls)
-
-        val finalControls = updatedControls.filter { control ->
-            val savedControl = savedItems.find { it.id == control.id }
-            if (savedControl != null) {
-                !control.signed && control.prop?.ctrl?.date?.isToday() == true
-            } else {
-                true
-            }
-        }
-
-        LogUtils.json(TAG, "updateSavedControls: finalControls after cleaning:", finalControls)
-
-        sharedPrefs.edit()
-            .putString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, gson.toJson(finalControls))
-            .apply()
-
-        LogUtils.d(TAG, "updateSavedControls: Saved ${finalControls.size} controls")
-    }
-
-    private fun updateSyncedControls(savedItems: List<SavedItem>) {
-        LogUtils.json(TAG, "updateSyncedControls: savedItems:", savedItems)
-
-        val currentControls = getPendingControls().toMutableList()
-
-        LogUtils.json(TAG, "updateSyncedControls: currentControls:", currentControls)
-
-        val updatedControls = currentControls.map { control ->
-            LogUtils.json(TAG, "updateSyncedControls: control:", control)
-
-            savedItems.find { it.id == control.id }?.let { savedItem ->
-                LogUtils.json(TAG, "updateSyncedControls: savedItem:", savedItem)
-
-                control.copy(
-                    prop = control.prop?.copy(
-                        ctrl = control.prop.ctrl.copy(
-                            date = ObjDateCtrl(savedItem.date.value, savedItem.date.txt)
-                        )
-                    ),
-                    saved = true
-                )
-            } ?: control
-        }
-
-        LogUtils.json(TAG, "updateSyncedControls: updatedControls:", updatedControls)
-
-        sharedPrefs.edit()
-            .putString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, gson.toJson(updatedControls))
-            .apply()
-    }
-    private fun cleanSyncedControls(savedIds: List<SavedItem>) {
-        LogUtils.json(TAG, "cleanSyncedControls: savedIds:", savedIds)
-
-        val currentControls = getPendingControls()
-
-        LogUtils.json(TAG, "cleanSyncedControls: currentControls:", currentControls)
-
-        val updatedControls = currentControls.filter { control ->
-            LogUtils.json(TAG, "cleanSyncedControls: control:", control)
-
-            val savedItem = savedIds.find { it.id == control.id }
-
-            LogUtils.json(TAG, "cleanSyncedControls: savedItem:", savedItem)
-
-            if (savedItem != null) {
-                !control.signed && ObjDateCtrl(savedItem.date.value * 1000).isToday()
-            } else {
-                true
-            }
-        }
-
-        LogUtils.json(TAG, "cleanSyncedControls: updatedControls:", updatedControls)
-
-        sharedPrefs.edit()
-            .putString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, gson.toJson(updatedControls))
-            .apply()
-    }
-
-
-
-    private fun parseIdList(jsonArray: JSONArray?): List<Int> {
-        return if (jsonArray != null) {
-            (0 until jsonArray.length()).mapNotNull { i ->
-                jsonArray.optInt(i, -1).takeIf { it != -1 }
-            }
-        } else {
-            emptyList()
-        }
-    }
-    private fun parseErrorList(jsonArray: JSONArray?): List<Pair<Int, String>> {
-        return if (jsonArray != null) {
-            (0 until jsonArray.length()).mapNotNull { i ->
-                val errorObj = jsonArray.optJSONObject(i)
-                if (errorObj != null) {
-                    val id = errorObj.optInt("id", -1)
-                    val txt = errorObj.optString("txt", "")
-                    if (id != -1) id to txt else null
-                } else {
-                    null
-                }
-            }
-        } else {
-            emptyList()
-        }
-    }
 
     private fun logSyncErrors(errors: List<ErrorItem>) {
         errors.forEach { (id, message) ->
@@ -335,12 +255,14 @@ class SyncManager(
             emptyList()
         }
     }
+
     fun savePendingControls(controls: List<SelectItem>) {
         sharedPrefs.edit()
             .putString(BaseActivity.PREF_SAVED_PENDING_CONTROLS, gson.toJson(controls))
             .apply()
         LogUtils.json(TAG, "savePendingControls: ${controls.size} controls saved", controls)
     }
+
     /**
      * Ajoute ou met à jour un contrôle dans la liste des contrôles en attente.
      * Cette méthode peut être utilisée par les différentes activities pour maintenir

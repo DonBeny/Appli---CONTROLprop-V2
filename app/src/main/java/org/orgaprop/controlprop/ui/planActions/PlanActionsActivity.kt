@@ -3,6 +3,8 @@ package org.orgaprop.controlprop.ui.planActions
 import android.app.DatePickerDialog
 import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.CalendarContract
 import android.util.Log
 import android.widget.Toast
@@ -132,7 +134,10 @@ class PlanActionsActivity : BaseActivity() {
                     }
                     is PlanActionsViewModel.PlanActionEvent.OpenCalendar -> {
                         openCalendarWithReminder()
-                        navigateToPrevScreen()
+
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            navigateToPrevScreen()
+                        }, 5000)
                     }
                     is PlanActionsViewModel.PlanActionEvent.ShowMessage -> {
                         UiUtils.showInfoSnackbar(binding.root, it.message)
@@ -383,11 +388,25 @@ class PlanActionsActivity : BaseActivity() {
 
         if (rsd != null && date.isNotEmpty() && planText.isNotEmpty()) {
             val txt = "${rsd.ref} -- ${rsd.name} -- ${rsd.address} ${rsd.city}"
+
+            val startMillis = parseDateToMillis(date)
+            val startTime = Calendar.getInstance().apply {
+                timeInMillis = startMillis
+                set(Calendar.HOUR_OF_DAY, 8)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+            }
+            val endTime = Calendar.getInstance().apply {
+                timeInMillis = startTime.timeInMillis
+                add(Calendar.MINUTE, 30)
+            }
+
             val intent = Intent(Intent.ACTION_INSERT).apply {
                 data = CalendarContract.Events.CONTENT_URI
                 putExtra(CalendarContract.Events.TITLE, "Échéance Plan d'actions")
                 putExtra(CalendarContract.Events.DESCRIPTION, txt)
-                putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, parseDateToMillis(date))
+                putExtra(CalendarContract.EXTRA_EVENT_BEGIN_TIME, startTime.timeInMillis)
+                putExtra(CalendarContract.EXTRA_EVENT_END_TIME, endTime.timeInMillis)
             }
             startActivity(intent)
         }
