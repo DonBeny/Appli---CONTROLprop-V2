@@ -236,9 +236,18 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
 
             val updatedElements = elements.toMutableList()
             val element = updatedElements[elementIndex]
-            val critter = element.critters[critterIndex]
 
-            critter.comment = ObjComment(comment, imagePath)
+            val updatedCritters = element.critters.map { critter ->
+                if (critter.id == critterIndex) {
+                    critter.copy(comment = ObjComment(comment, imagePath))
+                } else {
+                    critter
+                }
+            }
+
+            val updatedElement = element.copy(critters = updatedCritters)
+
+            updatedElements[elementIndex] = updatedElement
 
             return updatedElements
         } catch (e: BaseException) {

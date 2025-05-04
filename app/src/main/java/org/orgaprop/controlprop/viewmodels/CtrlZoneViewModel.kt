@@ -147,68 +147,46 @@ class CtrlZoneViewModel(
     fun updateCritterValue(elementPosition: Int, critterPosition: Int, value: Int) {
         val currentElements = _elements.value ?: return
 
-        val updatedElements = currentElements.toMutableList()
-        val element = updatedElements[elementPosition]
-        val critter = element.critters[critterPosition]
-
-        if (critter.note == 0) {
-            critter.note = value
-        } else {
-            critter.note = 0
-            critter.comment = ObjComment("", "")
-        }
-
-        var sumValues = 0
-        var sumCoefs = 0
-        var hasEvaluatedCriteria = false
-
-        element.critters.forEach { c ->
-            LogUtils.json(TAG, "updateCritterValue::c", c)
-
-            when (c.note) {
-                1 -> {
-                    LogUtils.d(TAG, "updateCritterValue::c.note => 1")
-                    hasEvaluatedCriteria = true
-                    sumValues += c.coefProduct
-                    sumCoefs += c.coefProduct
-                }
-                -1 -> {
-                    LogUtils.d(TAG, "updateCritterValue::c.note => -1")
-                    hasEvaluatedCriteria = true
-                    sumCoefs += c.coefProduct
-                }
-            }
-        }
-
-        if (!hasEvaluatedCriteria) {
-            element.note = -1
-        } else {
+        try {
             val meteoMajoration = configCtrl?.optString("meteo") == "true"
-
-            if (meteoMajoration) {
-                sumValues = (sumValues * 1.1).toInt()
-            }
-
-            element.note = if (sumCoefs > 0) {
-                ((sumValues.toDouble() / sumCoefs) * 100).toInt()
-            } else {
-                0
-            }
+            val updatedElements = manager.updateCritterValue(
+                currentElements,
+                elementPosition,
+                critterPosition,
+                value,
+                meteoMajoration
+            )
+            _elements.value = updatedElements
+        } catch (e: BaseException) {
+            LogUtils.e(TAG, "Error in updateCritterValue: ${e.message}", e)
+            _error.value = Pair(e.code, e.message ?: ErrorCodes.getMessageForCode(e.code))
+        } catch (e: Exception) {
+            LogUtils.e(TAG, "Unexpected error in updateCritterValue", e)
+            _error.value = Pair(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de la mise à jour du critère")
         }
-
-        _elements.value = updatedElements
     }
     fun updateCritterComment(elementIndex: Int, critterIndex: Int, comment: String, imagePath: String) {
         val currentElements = _elements.value ?: return
-        val updatedElements = currentElements.toMutableList()
 
-        updatedElements[elementIndex].criterMap[critterIndex]?.let { critter ->
-            critter.comment = ObjComment(comment, imagePath)
+        try {
+            val updatedElements = manager.updateCritterComment(
+                currentElements,
+                elementIndex,
+                critterIndex,
+                comment,
+                imagePath
+            )
             _elements.value = updatedElements
+        } catch (e: BaseException) {
+            LogUtils.e(TAG, "Error in updateCritterComment: ${e.message}", e)
+            _error.value = Pair(e.code, e.message ?: ErrorCodes.getMessageForCode(e.code))
+        } catch (e: Exception) {
+            LogUtils.e(TAG, "Unexpected error in updateCritterComment", e)
+            _error.value = Pair(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de la mise à jour du commentaire")
         }
     }
 
-    fun getControlledElements(): List<ObjElement> {
+    fun getControlledElements(): List<ObjGrilleElement> {
         return elements.value ?: emptyList()
     }
 

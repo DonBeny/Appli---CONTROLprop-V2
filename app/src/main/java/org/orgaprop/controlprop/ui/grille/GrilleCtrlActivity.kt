@@ -2,7 +2,6 @@ package org.orgaprop.controlprop.ui.grille
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import android.widget.AdapterView
 import android.window.OnBackInvokedDispatcher
@@ -11,23 +10,22 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.recyclerview.widget.GridLayoutManager
 
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import org.json.JSONArray
-
 import org.json.JSONObject
 
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
-import org.orgaprop.controlprop.R
 
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+
+import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.databinding.ActivityGrilleCtrlBinding
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.managers.GrilleCtrlManager
 import org.orgaprop.controlprop.models.ObjAgent
 import org.orgaprop.controlprop.models.ObjBtnZone
-import org.orgaprop.controlprop.models.ObjElement
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.models.toObjAgentList
 import org.orgaprop.controlprop.ui.BaseActivity
@@ -37,6 +35,7 @@ import org.orgaprop.controlprop.ui.grille.adapters.AgentSpinnerAdapter
 import org.orgaprop.controlprop.ui.grille.adapters.BtnZoneAdapter
 import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.models.LoginData
+import org.orgaprop.controlprop.models.ObjGrilleElement
 import org.orgaprop.controlprop.ui.selectEntry.SelectEntryActivity
 import org.orgaprop.controlprop.ui.sendMail.SendMailActivity
 import org.orgaprop.controlprop.utils.LogUtils
@@ -82,8 +81,8 @@ class GrilleCtrlActivity : BaseActivity() {
 
                     controlledElements?.let { elements ->
                         try {
-                            val typeToken = object : TypeToken<List<ObjElement>>() {}.type
-                            val newControlledElements = Gson().fromJson<List<ObjElement>>(elements, typeToken)
+                            val typeToken = object : TypeToken<List<ObjGrilleElement>>() {}.type
+                            val newControlledElements = Gson().fromJson<List<ObjGrilleElement>>(elements, typeToken)
 
                             LogUtils.json(TAG, "Parsed controlled elements:", newControlledElements)
 
@@ -316,7 +315,7 @@ class GrilleCtrlActivity : BaseActivity() {
         }
 
         binding.grilleCtrlActivityEndBtn.setOnClickListener {
-            Log.d(TAG, "End button clicked")
+            LogUtils.d(TAG, "End button clicked")
 
             val hasControlledZones = viewModel.residenceData.value?.let { entry ->
                 val grille = entry.prop?.ctrl?.grille ?: "[]"
@@ -457,11 +456,11 @@ class GrilleCtrlActivity : BaseActivity() {
         ctrlZoneLauncher.launch(intent)
     }
 
-    private fun updateZoneNotes(zoneId: Int, elements: List<ObjElement>) {
+    private fun updateZoneNotes(zoneId: Int, elements: List<ObjGrilleElement>) {
         LogUtils.json(TAG, "updateZoneNotes: Updating notes for zone $zoneId", elements)
 
         try {
-            if (elements.isEmpty() || elements.all { element -> element.criterMap.values.all { critter -> critter.note == 0 } }) {
+            if (elements.isEmpty() || elements.all { element -> element.critters.all { critter -> critter.note == 0 } }) {
                 viewModel.removeZone(zoneId)
             } else {
                 viewModel.updateZoneNote(zoneId, elements)

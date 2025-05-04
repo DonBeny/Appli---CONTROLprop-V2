@@ -3,7 +3,6 @@ package org.orgaprop.controlprop.ui.grille
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.widget.Button
 import android.widget.ImageButton
@@ -19,18 +18,21 @@ import androidx.core.content.ContextCompat
 import com.google.gson.Gson
 
 import org.json.JSONObject
+
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
 import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.databinding.ActivityCtrlZoneBinding
-import org.orgaprop.controlprop.models.ObjElement
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.ui.BaseActivity
 import org.orgaprop.controlprop.ui.login.LoginActivity
 import org.orgaprop.controlprop.models.LoginData
+import org.orgaprop.controlprop.models.ObjComment
+import org.orgaprop.controlprop.models.ObjGrilleElement
 import org.orgaprop.controlprop.utils.LogUtils
-import org.orgaprop.controlprop.utils.UiUtils
 import org.orgaprop.controlprop.viewmodels.CtrlZoneViewModel
+
+
 
 class CtrlZoneActivity : BaseActivity() {
 
@@ -189,7 +191,7 @@ class CtrlZoneActivity : BaseActivity() {
         //viewModel.loadZone(zoneId)
     }
     @SuppressLint("InflateParams")
-    private fun createElementsViews(elements: List<ObjElement>) {
+    private fun createElementsViews(elements: List<ObjGrilleElement>) {
         binding.ctrlZoneActivityGrillList.removeAllViews()
 
         elements.forEachIndexed { elementIndex, element ->
@@ -205,7 +207,7 @@ class CtrlZoneActivity : BaseActivity() {
 
                 val gridCritters = findViewById<LinearLayout>(R.id.element_item_grill_lyt)
 
-                element.criterMap.forEach { (critterIndex, critter) ->
+                element.critters.forEach { critter ->
                     val viewCritter = LayoutInflater.from(this@CtrlZoneActivity)
                         .inflate(R.layout.item_criter, null).apply {
                             val critterText = user.structure[zoneId.toString()]?.elmts?.get(element.id.toString())?.critrs?.get(critter.id.toString())?.name
@@ -222,8 +224,9 @@ class CtrlZoneActivity : BaseActivity() {
                                 buttonBad,
                                 buttonComment,
                                 elementIndex,
-                                critterIndex,
-                                critter.note
+                                critter.id,
+                                critter.note,
+                                critter.comment
                             )
                         }
 
@@ -241,10 +244,10 @@ class CtrlZoneActivity : BaseActivity() {
         buttonComment: ImageButton,
         elementIndex: Int,
         critterIndex: Int,
-        currentValue: Int
+        currentValue: Int,
+        comment: ObjComment
     ) {
-        val critter = viewModel.elements.value?.get(elementIndex)?.criterMap?.get(critterIndex)
-        val hasComment = !critter?.comment?.txt.isNullOrEmpty()
+        val hasComment = comment.txt.isNotEmpty()
 
         when (currentValue) {
             1 -> { // Cas "Nom"
@@ -293,7 +296,7 @@ class CtrlZoneActivity : BaseActivity() {
         critterIndex: Int,
         value: Int
     ) {
-        val critter = viewModel.elements.value?.get(elementIndex)?.criterMap?.get(critterIndex)
+        val critter = viewModel.elements.value?.get(elementIndex)?.critters?.get(critterIndex)
         val hasComment = !critter?.comment?.txt.isNullOrEmpty()
 
         otherButton.setBackgroundResource(R.drawable.button_desabled)
@@ -349,7 +352,7 @@ class CtrlZoneActivity : BaseActivity() {
             putExtra(CTRL_ZONE_ACTIVITY_EXTRA_ELEMENT_POSITION, elementIndex)
             putExtra(CTRL_ZONE_ACTIVITY_EXTRA_CRITTER_POSITION, critterIndex)
 
-            val critter = viewModel.elements.value?.get(elementIndex)?.criterMap?.get(critterIndex)
+            val critter = viewModel.elements.value?.get(elementIndex)?.critters?.get(critterIndex)
             critter?.comment?.let { comment ->
                 putExtra(AddCommentActivity.ADD_COMMENT_ACTIVITY_EXTRA_COMMENT_TEXT, comment.txt)
                 putExtra(AddCommentActivity.ADD_COMMENT_ACTIVITY_EXTRA_COMMENT_IMAGE, comment.img)
