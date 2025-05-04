@@ -11,8 +11,9 @@ import java.io.Serializable
 data class ObjGrilleElement(
     var id: Int = 0,
     var name: String = "",
+    var coef: Int = 0,
     var note: Int = 0,
-    var critter: List<ObjGrilleCritter> = emptyList()
+    var critters: List<ObjGrilleCritter> = emptyList()
 ) : Serializable {
 
     companion object {
@@ -26,8 +27,9 @@ data class ObjGrilleElement(
                 return ObjGrilleElement(
                     id = json.optInt("id", 0),
                     name = json.optString("name", ""),
+                    coef = json.optInt("coef", 0),
                     note = json.optInt("note", 0),
-                    critter = critters
+                    critters = critters
                 ).also { it.validate() }
             } catch (e: JSONException) {
                 Log.e(TAG, "Erreur lors du parsing de l'élément", e)
@@ -64,7 +66,7 @@ data class ObjGrilleElement(
     fun toJson(): JSONObject {
         try {
             val critterArray = JSONArray()
-            critter.forEach { criterion ->
+            critters.forEach { criterion ->
                 try {
                     critterArray.put(criterion.toJson())
                 } catch (e: Exception) {
@@ -77,7 +79,8 @@ data class ObjGrilleElement(
                 put("id", id)
                 put("name", name)
                 put("note", note)
-                put("criteria", critterArray)
+                put("coef", coef)
+                put("critters", critterArray)
             }
         } catch (e: JSONException) {
             Log.e(TAG, "Erreur lors de la sérialisation de l'élément", e)
@@ -95,9 +98,9 @@ data class ObjGrilleElement(
         if (name.isBlank()) {
             throw BaseException(ErrorCodes.INVALID_DATA, "Nom d'élément manquant")
         }
-        if (note < 0) {
-            Log.w(TAG, "Note d'élément négative, remise à 0")
-            note = 0
+        if (coef <= 0) {
+            Log.w(TAG, "Coefficient d'élément négatif, remise à 0")
+            coef = 0
         }
     }
 

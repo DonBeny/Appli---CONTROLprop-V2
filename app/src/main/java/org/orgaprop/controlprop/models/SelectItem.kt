@@ -170,7 +170,9 @@ data class SelectItem(
                 throw BaseException(ErrorCodes.INVALID_RESPONSE, "Erreur lors de l'analyse de la liste", e)
             }
         }
+
     }
+
 
     private fun isGrilleValid(grilleJson: String): Boolean {
         return try {
@@ -201,52 +203,30 @@ data class SelectItem(
         }
     }
 
-    fun getZoneElements(zoneId: Int): List<ObjElement>? {
+    /**
+     * Récupère les éléments d'une zone spécifique dans la grille
+     *
+     * @param zoneId L'identifiant de la zone
+     * @return La liste des éléments de la zone ou null si non trouvée
+     */
+    fun getZoneElements(zoneId: Int): List<ObjGrilleElement>? {
         LogUtils.d(TAG, "getZoneElements: Getting elements for zone $zoneId")
 
         return try {
-            val grille = prop?.ctrl?.getGrilleAsJsonArray()
+            val grille = prop?.ctrl?.grille
 
             if (grille == null) {
                 LogUtils.d(TAG, "getZoneElements: Grille is null")
                 return null
             }
 
-            val firstItem = if (grille.length() > 0) grille.optJSONObject(0) else null
-            if (firstItem != null && firstItem.has("zoneId")) {
-                LogUtils.d(TAG, "getZoneElements: Grille has zone structure")
+            val objGrilleZone = grille.zones.firstOrNull { zone ->
+                zone.zoneId == zoneId
+            }
 
-                val zoneObject = (0 until grille.length())
-                    .map { grille.optJSONObject(it) }
-                    .firstOrNull { it?.optInt("zoneId") == zoneId }
-
-                zoneObject?.optJSONArray("elements")?.toString()?.let { elementsJson ->
-                    LogUtils.json(TAG, "getZoneElements: Found elements for zone $zoneId:", elementsJson)
-                    try {
-                        Gson().fromJson<List<ObjElement>>(
-                            elementsJson,
-                            object : TypeToken<List<ObjElement>>() {}.type
-                        )
-                    } catch (e: JsonSyntaxException) {
-                        LogUtils.e(TAG, "Erreur lors de la conversion des éléments de zone", e)
-                        throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format d'éléments de zone invalide", e)
-                    }
-                }
-            } else {
-                LogUtils.d(TAG, "getZoneElements: Grille has direct elements structure")
-
-                val grilleStr = grille.toString()
-                LogUtils.json(TAG, "getZoneElements: Treating as direct elements:", grilleStr)
-
-                try {
-                    Gson().fromJson<List<ObjElement>>(
-                        grilleStr,
-                        object : TypeToken<List<ObjElement>>() {}.type
-                    )
-                } catch (e: JsonSyntaxException) {
-                    LogUtils.e(TAG, "Erreur lors de la conversion directe des éléments", e)
-                    throw BaseException(ErrorCodes.INVALID_RESPONSE, "Format d'éléments invalide", e)
-                }
+            objGrilleZone?.let { zone ->
+                LogUtils.json(TAG, "getZoneElements: Found elements for zone $zoneId:", zone.elements)
+                zone.elements
             }
         } catch (e: BaseException) {
             throw e
@@ -306,6 +286,7 @@ data class SelectItem(
                     throw BaseException(ErrorCodes.UNKNOWN_ERROR, "Erreur lors de l'analyse des propriétés", e)
                 }
             }
+
         }
 
         @Parcelize
@@ -344,7 +325,7 @@ data class SelectItem(
             val conf: ObjConfig,
             val date: ObjDateCtrl,
             var prestate: Int = 0,
-            val grille: String = "[]"
+            val grille: ObjGrille? = null,
         ) : Parcelable {
 
             companion object {
@@ -355,7 +336,10 @@ data class SelectItem(
                         val note = json.optInt("note", -1)
                         val conf = parseConfCtrl(json)
                         val date = parseDateCtrl(json)
-                        val grille = json.optJSONArray("grille")?.toString() ?: "[]"
+
+                        val grille = json.optJSONArray("grille")?.let { grilleArray ->
+                            ObjGrille.fromJsonArray(grilleArray)
+                        }
 
                         return Ctrl(
                             note = note,
@@ -381,7 +365,7 @@ data class SelectItem(
                             note = note,
                             conf = conf,
                             date = date,
-                            grille = grille.toString()
+                            grille = ObjGrille.fromJsonArray(grille)
                         )
                     } catch (e: Exception) {
                         LogUtils.e(TAG, "Erreur lors de la création du contrôle à partir du tableau", e)
@@ -433,6 +417,7 @@ data class SelectItem(
                     JSONArray()
                 }
             }
+
         }
     }
 

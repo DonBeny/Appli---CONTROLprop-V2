@@ -10,6 +10,8 @@ import java.io.Serializable
 
 data class ObjGrilleZone(
     var zoneId: Int = 0,
+    var name: String = "",
+    var coef: Int = 0,
     var elements: List<ObjGrilleElement> = emptyList()
 ) : Serializable {
     companion object {
@@ -22,7 +24,9 @@ data class ObjGrilleZone(
 
                 return ObjGrilleZone(
                     zoneId = json.optInt("zoneId", 0),
-                    elements = elements
+                    name = json.optString("name", ""),
+                    coef = json.optInt("coef", 0),
+                    elements = elements,
                 ).also { it.validate() }
             } catch (e: JSONException) {
                 Log.e(TAG, "Erreur lors du parsing de la zone", e)
@@ -70,6 +74,8 @@ data class ObjGrilleZone(
 
             return JSONObject().apply {
                 put("zoneId", zoneId)
+                put("name", name)
+                put("coef", coef)
                 put("elements", elementsArray)
             }
         } catch (e: JSONException) {

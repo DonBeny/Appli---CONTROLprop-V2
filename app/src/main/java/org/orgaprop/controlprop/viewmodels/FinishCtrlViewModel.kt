@@ -36,7 +36,7 @@ class FinishCtrlViewModel(private val manager: FinishCtrlManager) : ViewModel() 
      */
     fun setUserData(userData: LoginData) {
         this.userData = userData
-        LogUtils.json(TAG, "setUserData:", userData)
+        //LogUtils.json(TAG, "setUserData:", userData)
     }
 
     /**
@@ -46,7 +46,7 @@ class FinishCtrlViewModel(private val manager: FinishCtrlManager) : ViewModel() 
      */
     fun setEntrySelected(currentEntry: SelectItem) {
         entrySelected = currentEntry
-        LogUtils.json(TAG, "setEntrySelected:", currentEntry)
+        //LogUtils.json(TAG, "setEntrySelected:", currentEntry)
         refreshControlState()
     }
 

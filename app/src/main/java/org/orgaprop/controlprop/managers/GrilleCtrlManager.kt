@@ -3,23 +3,25 @@ package org.orgaprop.controlprop.managers
 import android.content.SharedPreferences
 
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-import org.json.JSONArray
 import org.json.JSONObject
+
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.models.ObjConfig
-
-import org.orgaprop.controlprop.models.ObjElement
+import org.orgaprop.controlprop.models.ObjGrille
+import org.orgaprop.controlprop.models.ObjGrilleElement
+import org.orgaprop.controlprop.models.ObjGrilleZone
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.sync.SyncManager
 import org.orgaprop.controlprop.utils.HttpTask
 import org.orgaprop.controlprop.utils.LogUtils
+
+
 
 class GrilleCtrlManager(
     private val sharedPrefs: SharedPreferences,
@@ -31,22 +33,14 @@ class GrilleCtrlManager(
 
     private val gson = Gson()
 
-    fun getGrilleElements(entry: SelectItem): Map<Int, List<ObjElement>> {
+    fun getGrilleElements(entry: SelectItem): Map<Int, List<ObjGrilleElement>> {
         try {
             val grille = entry.prop?.ctrl?.grille ?: return emptyMap()
-            if (grille == "[]") return emptyMap()
 
-            val jsonArray = JSONArray(grille)
-            val elementsMap = mutableMapOf<Int, List<ObjElement>>()
+            val elementsMap = mutableMapOf<Int, List<ObjGrilleElement>>()
 
-            for (i in 0 until jsonArray.length()) {
-                val zoneObj = jsonArray.getJSONObject(i)
-                val zoneId = zoneObj.getInt("zoneId")
-                val elements = gson.fromJson<List<ObjElement>>(
-                    zoneObj.getJSONArray("elements").toString(),
-                    object : TypeToken<List<ObjElement>>() {}.type
-                )
-                elementsMap[zoneId] = elements
+            grille.zones.forEach { zone ->
+                elementsMap[zone.zoneId] = zone.elements
             }
 
             return elementsMap
@@ -58,53 +52,45 @@ class GrilleCtrlManager(
 
 
 
-    fun updateGrilleData(entry: SelectItem, zoneId: Int, elements: List<ObjElement>): SelectItem {
+    fun updateGrilleData(entry: SelectItem, zoneId: Int, elements: List<ObjGrilleElement>): SelectItem {
         LogUtils.json(TAG, "updateGrilleData: entry:", entry)
         LogUtils.d(TAG, "updateGrilleData: zoneId: $zoneId")
         LogUtils.json(TAG, "updateGrilleData: elements:", elements)
 
         try {
-            val currentGrille = if (entry.prop?.ctrl?.grille.isNullOrEmpty()) {
-                JSONArray()
-            } else {
-                JSONArray(entry.prop!!.ctrl.grille)
-            }
+            val currentGrille = entry.prop?.ctrl?.grille ?: ObjGrille()
+            val zones = currentGrille.zones.toMutableList()
 
             LogUtils.json(TAG, "updateGrilleData: currentGrille:", currentGrille)
+            LogUtils.json(TAG, "updateGrilleData: zones:", zones)
 
-            val updatedZone = JSONObject().apply {
-                put("zoneId", zoneId)
-                put("elements", JSONArray(gson.toJson(elements)))
-                put("timestamp", System.currentTimeMillis())
-            }
+            val updatedZone = zones.find { it.zoneId == zoneId }?.copy(elements = elements)
+                ?: ObjGrilleZone(zoneId = zoneId, elements = elements)
 
             LogUtils.json(TAG, "updateGrilleData: updatedZone:", updatedZone)
 
-            var found = false
-            for (i in 0 until currentGrille.length()) {
-                LogUtils.json(TAG, "updateGrilleData: currentGrille[$i]:", currentGrille.getJSONObject(i))
-
-                if (currentGrille.getJSONObject(i).getInt("zoneId") == zoneId) {
-                    LogUtils.d(TAG, "updateGrilleData: Updating zone $zoneId")
-
-                    currentGrille.put(i, updatedZone)
-                    found = true
-                    break
-                }
-            }
-            if (!found) {
-                currentGrille.put(updatedZone)
+            val updatedZones = zones.map { if (it.zoneId == zoneId) updatedZone else it }
+            if (!zones.any { it.zoneId == zoneId }) {
+                zones.add(updatedZone)
             }
 
-            LogUtils.json(TAG, "updateGrilleData: currentGrille:", currentGrille)
+            LogUtils.json(TAG, "updateGrilleData: updatedZones:", updatedZones)
 
-            return entry.copy(
+            val updatedGrille = ObjGrille(zones = updatedZones)
+
+            LogUtils.json(TAG, "updateGrilleData: updatedGrille:", updatedGrille)
+
+            val updatedEntry = entry.copy(
                 prop = entry.prop?.copy(
                     ctrl = entry.prop.ctrl.copy(
-                        grille = currentGrille.toString()
+                        grille = updatedGrille
                     )
                 )
             )
+
+            LogUtils.json(TAG, "updateGrilleData: updatedEntry:", updatedEntry)
+
+            return updatedEntry
         } catch (e: Exception) {
             LogUtils.e(TAG, "Error updating grille data", e)
             throw BaseException(ErrorCodes.INVALID_DATA, "Erreur lors de la mise à jour des données de la grille", e)
@@ -139,7 +125,7 @@ class GrilleCtrlManager(
 
             val savedControl = pendingsCtrls
                 .firstOrNull { it.id == currentEntry.id }
-                ?.takeIf { it.prop?.ctrl?.grille != "[]" && !it.signed && it.prop?.ctrl?.date?.isToday() == true }
+                ?.takeIf { it.prop?.ctrl?.grille != null && !it.signed && it.prop.ctrl.date.isToday() }
 
             if (savedControl != null) {
                 val currentProp = currentEntry.prop
@@ -150,7 +136,7 @@ class GrilleCtrlManager(
                 LogUtils.json(TAG, "loadResidenceData: savedCtrl:", savedCtrl)
 
                 if (currentProp != null && savedCtrl != null) {
-                    return currentEntry.copy(
+                    val selectedEntry = currentEntry.copy(
                         type = typeCtrl,
                         prop = currentProp.copy(
                             ctrl = currentProp.ctrl.copy(
@@ -162,6 +148,10 @@ class GrilleCtrlManager(
                             )
                         )
                     )
+
+                    LogUtils.json(TAG, "loadResidenceData: Returning saved control", selectedEntry)
+
+                    return selectedEntry
                 } else {
                     LogUtils.e(TAG, "loadResidenceData: Invalid control data")
                 }

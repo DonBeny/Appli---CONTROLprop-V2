@@ -1,22 +1,24 @@
 package org.orgaprop.controlprop.viewmodels
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+
 import kotlinx.coroutines.launch
-import org.json.JSONArray
+
 import org.orgaprop.controlprop.R
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
-
 import org.orgaprop.controlprop.managers.GrilleCtrlManager
 import org.orgaprop.controlprop.models.ObjBtnZone
-import org.orgaprop.controlprop.models.ObjElement
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.models.LoginData
+import org.orgaprop.controlprop.models.ObjGrille
+import org.orgaprop.controlprop.models.ObjGrilleElement
 import org.orgaprop.controlprop.utils.LogUtils
+
+
 
 class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() {
 
@@ -88,12 +90,14 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
 
         LogUtils.d(TAG, "setUserCredentials: idMbr: ${this.idMbr}, adrMac: ${this.adrMac}")
     }
+
     fun setUserData(userData: LoginData, withProxi: Boolean, withContract: Boolean) {
         setUserCredentials(userData.idMbr, userData.adrMac)
         this.userData = userData
         this.withProxi = withProxi
         this.withContract = withContract
     }
+
     fun setEntrySelected(entrySelected: SelectItem) {
         try {
             _residenceData.value = entrySelected
@@ -145,6 +149,7 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
             throw BaseException(ErrorCodes.INVALID_DATA, "Erreur lors de la génération des boutons de zone", e)
         }
     }
+
     private fun getIconForZone(zoneId: Int): Int {
         return when (zoneId) {
             1 -> R.drawable.abords_acces_immeubles_vert
@@ -169,6 +174,7 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
             else -> R.drawable.localisation_vert
         }
     }
+
     /**
      * Récupère le coefficient d'une zone à partir de la structure de l'utilisateur
      *
@@ -186,7 +192,7 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
         }
     }
 
-    fun updateZoneNote(zoneId: Int, elements: List<ObjElement>) {
+    fun updateZoneNote(zoneId: Int, elements: List<ObjGrilleElement>) {
         _isLoading.value = true
         LogUtils.json(TAG, "updateZoneNote: Updating zone $zoneId with ${elements.size} elements", elements)
 
@@ -230,12 +236,14 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
             _error.value = Pair(ErrorCodes.UNKNOWN_ERROR, "Une erreur inattendue s'est produite")
         }
     }
+
     private fun updateZoneNoteUi(zoneId: Int, note: Int) {
         val updatedZones = _btnZones.value?.map { zone ->
             if (zone.id == zoneId) zone.copy(note = "$note%") else zone
         }
         _btnZones.value = updatedZones ?: emptyList()
     }
+
     /**
      * Calcule la note d'une zone en prenant en compte le coefficient de la zone
      *
@@ -243,7 +251,7 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
      * @param zoneId L'identifiant de la zone
      * @return La note calculée de la zone (0-100 ou -1 si non évaluée)
      */
-    private fun calculateZoneNote(elements: List<ObjElement>, zoneId: Int): Int {
+    private fun calculateZoneNote(elements: List<ObjGrilleElement>, zoneId: Int): Int {
         var sumValues = 0
         var sumCoefs = 0
         val coefZone = getZoneCoefficient(zoneId)
@@ -251,8 +259,8 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
         LogUtils.d(TAG, "calculateZoneNote: Zone $zoneId has coefficient: $coefZone")
 
         elements.forEach { element ->
-            element.criterMap.values.forEach { critter ->
-                val totalCoef = coefZone * critter.coefProduct
+            element.critters.forEach { critter ->
+                val totalCoef = coefZone * element.coef
 
                 if (critter.note == 1) sumValues += totalCoef
                 if (critter.note != 0) sumCoefs += totalCoef
@@ -263,13 +271,14 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
 
         return if (sumCoefs > 0) ((sumValues.toDouble() / sumCoefs) * 100).toInt() else -1
     }
+
     /**
      * Calcule la note globale en prenant en compte toutes les zones et leurs coefficients
      *
      * @param elementsMap La carte des éléments par zone
      * @return La note globale (0-100 ou -1 si aucune zone évaluée)
      */
-    private fun calculateGlobalNote(elementsMap: Map<Int, List<ObjElement>>): Int {
+    private fun calculateGlobalNote(elementsMap: Map<Int, List<ObjGrilleElement>>): Int {
         if (elementsMap.isEmpty()) return -1
 
         var totalSumValues = 0
@@ -281,8 +290,8 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
             LogUtils.d(TAG, "calculateGlobalNote: Zone $zoneId has coefficient: $coefZone")
 
             elements.forEach { element ->
-                element.criterMap.values.forEach { critter ->
-                    val totalCoef = coefZone * critter.coefProduct
+                element.critters.forEach { critter ->
+                    val totalCoef = coefZone * element.coef
 
                     if (critter.note == 1) {
                         totalSumValues += totalCoef
@@ -298,6 +307,7 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
 
         return if (totalSumCoefs > 0) ((totalSumValues.toDouble() / totalSumCoefs) * 100).toInt() else -1
     }
+
     fun refreshAllNotes() {
         LogUtils.d(TAG, "refreshAllNotes: Refreshing all notes")
 
@@ -344,28 +354,20 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
         _isLoading.value = true
         try {
             _residenceData.value?.let { currentEntry ->
-                // Obtenir la grille actuelle
-                val currentGrille = JSONArray(currentEntry.prop?.ctrl?.grille ?: "[]")
+                val currentGrille = currentEntry.prop?.ctrl?.grille
 
-                // Créer une nouvelle grille sans la zone spécifiée
-                val updatedGrille = JSONArray()
-                for (i in 0 until currentGrille.length()) {
-                    val zoneObj = currentGrille.getJSONObject(i)
-                    if (zoneObj.getInt("zoneId") != zoneId) {
-                        updatedGrille.put(zoneObj)
-                    }
-                }
+                val updatedZones = currentGrille?.zones?.filter { it.zoneId != zoneId } ?: emptyList()
+                val updatedGrille = ObjGrille(zones = updatedZones)
 
                 // Mettre à jour l'entrée avec la nouvelle grille
                 val updatedEntry = currentEntry.copy(
                     prop = currentEntry.prop?.copy(
                         ctrl = currentEntry.prop.ctrl.copy(
-                            grille = updatedGrille.toString()
+                            grille = updatedGrille
                         )
                     )
                 )
 
-                // Recalculer la note globale
                 val elementsMap = manager.getGrilleElements(updatedEntry)
                 val globalNote = calculateGlobalNote(elementsMap)
 
@@ -377,17 +379,15 @@ class GrilleCtrlViewModel(private val manager: GrilleCtrlManager) : ViewModel() 
                     )
                 )
 
-                // Sauvegarder les modifications
                 manager.saveControlProgress(finalEntry)
 
                 _residenceData.value = finalEntry
                 _noteCtrl.value = if (globalNote < 0) "S O" else "$globalNote%"
 
-                // Mettre à jour l'UI
-                val updatedZones = _btnZones.value?.map { zone ->
+                val finalZones = _btnZones.value?.map { zone ->
                     if (zone.id == zoneId) zone.copy(note = "S O") else zone
                 }
-                _btnZones.value = updatedZones ?: emptyList()
+                _btnZones.value = finalZones ?: emptyList()
             }
             _isLoading.value = false
         } catch (e: Exception) {

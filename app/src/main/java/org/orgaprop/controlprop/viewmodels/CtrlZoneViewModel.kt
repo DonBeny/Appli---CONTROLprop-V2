@@ -1,7 +1,5 @@
 package org.orgaprop.controlprop.viewmodels
 
-import android.util.Log
-
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -12,10 +10,12 @@ import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.managers.CtrlZoneManager
 import org.orgaprop.controlprop.models.ObjComment
-import org.orgaprop.controlprop.models.ObjElement
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.models.LoginData
+import org.orgaprop.controlprop.models.ObjGrilleElement
 import org.orgaprop.controlprop.utils.LogUtils
+
+
 
 class CtrlZoneViewModel(
     private val manager: CtrlZoneManager
@@ -25,8 +25,8 @@ class CtrlZoneViewModel(
         const val TAG = "CtrlZoneViewModel"
     }
 
-    private val _elements = MutableLiveData<List<ObjElement>>()
-    val elements: LiveData<List<ObjElement>> = _elements
+    private val _elements = MutableLiveData<List<ObjGrilleElement>>()
+    val elements: LiveData<List<ObjGrilleElement>> = _elements
 
     private val _zoneName = MutableLiveData<String>()
     val zoneName: LiveData<String> = _zoneName
@@ -90,16 +90,18 @@ class CtrlZoneViewModel(
 
                     LogUtils.d(TAG, "element.note => ${element.note}")
 
-                    savedElement.criterMap.forEach { (critterId, savedCritter) ->
+                    savedElement.critters.forEach { savedCritter ->
                         LogUtils.json(TAG, "savedCritter", savedCritter)
 
-                        element.criterMap[critterId]?.let { currentCritter ->
+                        element.critters.find { it.id == savedCritter.id }?.let { currentCritter ->
                             LogUtils.json(TAG, "currentCritter", currentCritter)
 
-                            currentCritter.note = savedCritter.note
-                            currentCritter.comment = savedCritter.comment
+                            val updatedCritter = currentCritter.copy(
+                                note = savedCritter.note,
+                                comment = savedCritter.comment
+                            )
 
-                            LogUtils.json(TAG, "newCritter", currentCritter)
+                            LogUtils.json(TAG, "newCritter", updatedCritter)
                         }
                     }
                 }
@@ -144,9 +146,10 @@ class CtrlZoneViewModel(
 
     fun updateCritterValue(elementPosition: Int, critterPosition: Int, value: Int) {
         val currentElements = _elements.value ?: return
+
         val updatedElements = currentElements.toMutableList()
         val element = updatedElements[elementPosition]
-        val critter = element.criterMap[critterPosition] ?: return
+        val critter = element.critters[critterPosition]
 
         if (critter.note == 0) {
             critter.note = value
@@ -159,7 +162,7 @@ class CtrlZoneViewModel(
         var sumCoefs = 0
         var hasEvaluatedCriteria = false
 
-        element.criterMap.values.forEach { c ->
+        element.critters.forEach { c ->
             LogUtils.json(TAG, "updateCritterValue::c", c)
 
             when (c.note) {

@@ -1,15 +1,17 @@
 package org.orgaprop.controlprop.managers
 
 import android.content.SharedPreferences
-import android.util.Log
+
 import org.orgaprop.controlprop.exceptions.BaseException
 import org.orgaprop.controlprop.exceptions.ErrorCodes
 import org.orgaprop.controlprop.models.LoginData
 import org.orgaprop.controlprop.models.ObjComment
-import org.orgaprop.controlprop.models.ObjCriter
-import org.orgaprop.controlprop.models.ObjElement
+import org.orgaprop.controlprop.models.ObjGrilleCritter
+import org.orgaprop.controlprop.models.ObjGrilleElement
 import org.orgaprop.controlprop.models.SelectItem
 import org.orgaprop.controlprop.utils.LogUtils
+
+
 
 class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
 
@@ -27,7 +29,7 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
      * @param zoneId L'ID de la zone à charger
      * @return Une paire contenant le nom de la zone et les éléments chargés
      */
-     fun loadZoneData(userData: LoginData, entrySelected: SelectItem, zoneId: Int): Pair<String, List<ObjElement>> {
+     fun loadZoneData(userData: LoginData, entrySelected: SelectItem, zoneId: Int): Pair<String, List<ObjGrilleElement>> {
         LogUtils.d(TAG, "loadZoneData: Loading data for zone $zoneId")
 
         try {
@@ -43,25 +45,29 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
                 if (element.coef > 0) {
                     LogUtils.d(TAG, "loadZoneData: Adding element $elementId to elements list")
 
-                    ObjElement(
+                    val critters = element.critrs.mapNotNull { (critterId, critter) ->
+                        LogUtils.json(TAG, "loadZoneData: Processing critter $critterId", critter)
+
+                        if (critter.coef > 0) {
+                            LogUtils.d(TAG, "loadZoneData: Adding critter $critterId to criter list")
+
+                            ObjGrilleCritter(
+                                id = critterId.toInt(),
+                                name = critter.name,
+                                coef = critter.coef,
+                                note = 0,
+                                comment = ObjComment()
+                            )
+                        } else null
+                    }
+
+                    ObjGrilleElement(
                         id = elementId.toInt(),
-                        coef = element.coef
-                    ).apply {
-                        element.critrs.forEach { (critterId, critter) ->
-                            LogUtils.json(TAG, "loadZoneData: Processing critter $critterId", critter)
-
-                            if (critter.coef > 0) {
-                                LogUtils.d(TAG, "loadZoneData: Adding critter $critterId to criter map")
-
-                                this.addCriter(
-                                    ObjCriter(
-                                        id = critterId.toInt(),
-                                        coefProduct = element.coef * critter.coef
-                                    )
-                                )
-                            }
-                        }
-                    }.takeIf { it.criterMap.isNotEmpty() }
+                        name = element.name,
+                        coef = element.coef,
+                        note = -1,
+                        critters = critters
+                    ).takeIf { it.critters.isNotEmpty() }
                 } else null
             }
             LogUtils.json(TAG, "loadZoneData: Elements list size: ${elements.size}", elements)
@@ -72,12 +78,13 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
 
             if (savedElements != null) {
                 LogUtils.d(TAG, "loadZoneData: Found saved elements for zone $zoneId")
+
                 elements.forEach { element ->
                     savedElements.find { it.id == element.id }?.let { savedElement ->
                         element.note = savedElement.note
 
-                        savedElement.criterMap.forEach { (critterId, savedCritter) ->
-                            element.criterMap[critterId]?.let { currentCritter ->
+                        savedElement.critters.forEach { savedCritter ->
+                            element.critters.find { it.id == savedCritter.id }?.let { currentCritter ->
                                 currentCritter.note = savedCritter.note
                                 currentCritter.comment = savedCritter.comment
                             }
@@ -103,22 +110,22 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
      * @param meteoMajoration Si une majoration météo doit être appliquée
      * @return La note calculée de l'élément (0-100)
      */
-    fun calculateElementNote(element: ObjElement, meteoMajoration: Boolean): Int {
+    fun calculateElementNote(element: ObjGrilleElement, meteoMajoration: Boolean): Int {
         try {
             var sumValues = 0
             var sumCoefs = 0
             var hasEvaluatedCriteria = false
 
-            element.criterMap.values.forEach { critter ->
+            element.critters.forEach { critter ->
                 when (critter.note) {
                     1 -> {
                         hasEvaluatedCriteria = true
-                        sumValues += critter.coefProduct
-                        sumCoefs += critter.coefProduct
+                        sumValues += critter.coef * element.coef
+                        sumCoefs += critter.coef * element.coef
                     }
                     -1 -> {
                         hasEvaluatedCriteria = true
-                        sumCoefs += critter.coefProduct
+                        sumCoefs += critter.coef * element.coef
                     }
                 }
             }
@@ -153,12 +160,12 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
      * @return La liste mise à jour des éléments
      */
     fun updateCritterValue(
-        elements: List<ObjElement>,
+        elements: List<ObjGrilleElement>,
         elementPosition: Int,
         critterPosition: Int,
         value: Int,
         meteoMajoration: Boolean
-    ): List<ObjElement> {
+    ): List<ObjGrilleElement> {
         LogUtils.d(TAG, "updateCritterValue: Updating element $elementPosition, critter $critterPosition to value $value")
 
         try {
@@ -168,16 +175,30 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
 
             val updatedElements = elements.toMutableList()
             val element = updatedElements[elementPosition]
-            val critter = element.criterMap[critterPosition]
+            val critter = element.critters.find { it.id == critterPosition }
                 ?: throw BaseException(ErrorCodes.INVALID_DATA, "Critère non trouvé à la position $critterPosition")
 
-            critter.note = value
-
-            if (value == -1) {
-                critter.comment = ObjComment("", "")
+            val updatedCritters = element.critters.map { crit ->
+                if (crit.id == critterPosition) {
+                    val updatedComment = if (value == -1) {
+                        // Si on passe à -1, on garde le commentaire existant
+                        crit.comment
+                    } else {
+                        // Si on change de -1 à autre chose, on supprime le commentaire
+                        ObjComment("", "")
+                    }
+                    crit.copy(note = value, comment = updatedComment)
+                } else {
+                    crit
+                }
             }
 
-            element.note = calculateElementNote(element, meteoMajoration)
+            val updatedElement = element.copy(
+                critters = updatedCritters,
+                note = calculateElementNote(element.copy(critters = updatedCritters), meteoMajoration)
+            )
+
+            updatedElements[elementPosition] = updatedElement
 
             return updatedElements
         } catch (e: BaseException) {
@@ -200,12 +221,12 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
      * @return La liste mise à jour des éléments
      */
     fun updateCritterComment(
-        elements: List<ObjElement>,
+        elements: List<ObjGrilleElement>,
         elementIndex: Int,
         critterIndex: Int,
         comment: String,
         imagePath: String
-    ): List<ObjElement> {
+    ): List<ObjGrilleElement> {
         LogUtils.d(TAG, "updateCritterComment: Updating comment for element $elementIndex, critter $critterIndex")
 
         try {
@@ -215,8 +236,7 @@ class CtrlZoneManager(private val sharedPrefs: SharedPreferences) {
 
             val updatedElements = elements.toMutableList()
             val element = updatedElements[elementIndex]
-            val critter = element.criterMap[critterIndex]
-                ?: throw BaseException(ErrorCodes.INVALID_DATA, "Critère non trouvé à la position $critterIndex")
+            val critter = element.critters[critterIndex]
 
             critter.comment = ObjComment(comment, imagePath)
 

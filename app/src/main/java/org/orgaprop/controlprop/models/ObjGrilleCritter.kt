@@ -10,7 +10,9 @@ import java.io.Serializable
 data class ObjGrilleCritter(
     var id: Int = 0,
     var name: String = "",
-    var note: Int = 0
+    var coef: Int = 0,
+    var note: Int = 0,
+    var comment: ObjComment,
 ) : Serializable {
     companion object {
         private const val TAG = "ObjGrilleCritter"
@@ -20,7 +22,9 @@ data class ObjGrilleCritter(
                 return ObjGrilleCritter(
                     id = json.optInt("id", 0),
                     name = json.optString("name", ""),
-                    note = json.optInt("note", 0)
+                    coef = json.optInt("coef", 0),
+                    note = json.optInt("note", 0),
+                    comment = ObjComment.fromJson(json.getJSONObject("comment"))
                 ).also { it.validate() }
             } catch (e: JSONException) {
                 Log.e(TAG, "Erreur lors du parsing du critère", e)
@@ -39,7 +43,9 @@ data class ObjGrilleCritter(
             return JSONObject().apply {
                 put("id", id)
                 put("name", name)
+                put("coef", coef)
                 put("note", note)
+                put("comment", comment.toJson())
             }
         } catch (e: JSONException) {
             Log.e(TAG, "Erreur lors de la sérialisation du critère", e)
@@ -57,9 +63,9 @@ data class ObjGrilleCritter(
         if (name.isBlank()) {
             throw BaseException(ErrorCodes.INVALID_DATA, "Nom de critère manquant")
         }
-        if (note < 0) {
+        if (coef < 0) {
             Log.w(TAG, "Note de critère négative, remise à 0")
-            note = 0
+            coef = 0
         }
     }
 }
